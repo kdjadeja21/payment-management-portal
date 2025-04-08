@@ -4,7 +4,7 @@ import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { UserButton } from "@clerk/nextjs"
-import { BarChart3, FileText, Home, Menu, Store, X, CreditCard, Settings } from 'lucide-react'
+import { BarChart3, FileText, Home, Menu, Store, X, CreditCard, Settings, Crown } from 'lucide-react'
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -42,6 +42,11 @@ const navItems: NavItem[] = [
     title: "Reports",
     href: "/reports",
     icon: BarChart3,
+  },
+  {
+    title: "Subscription",
+    href: "/subscription",
+    icon: Crown,
   },
   {
     title: "Settings",

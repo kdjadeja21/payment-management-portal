@@ -58,7 +58,7 @@ export function PaymentForm({ retailer, totalDue }: PaymentFormProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Record Payment</Button>
+        <Button className="bg-green-600 hover:bg-green-700 text-white cursor-pointer">Record Payment</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, EditIcon, EyeIcon, Plus } from 'lucide-react'
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -77,7 +77,7 @@ async function RetailerContent({ params }: RetailerPageProps) {
         <div className="flex items-center gap-4">
           <RetailerForm
             retailer={retailer}
-            trigger={<Button variant="outline" size="sm">Edit Retailer</Button>}
+            trigger={<Button className="cursor-pointer" variant="outline" size="sm">Edit Retailer</Button>}
           />
           {totalOutstanding > 0 && (
             <PaymentForm retailer={retailer} totalDue={totalOutstanding} />
@@ -135,20 +135,24 @@ async function RetailerContent({ params }: RetailerPageProps) {
       <Tabs defaultValue="invoices">
         <div className="flex items-center justify-between">
           <TabsList>
-            <TabsTrigger value="invoices">Invoices</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="payments">Payments</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="details">Details</TabsTrigger>
           </TabsList>
 
           <InvoiceForm
             retailers={retailers}
             defaultRetailerId={retailer.id}
             trigger={
-              <Button size="sm">
+              <Button size="sm" className="bg-blue-700 hover:bg-blue-800 text-white cursor-pointer">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Invoice
               </Button>
             }
+            onSuccess={() => {
+              // Refresh the page to get updated data
+              window.location.reload()
+            }}
           />
         </div>
 
@@ -168,7 +172,7 @@ async function RetailerContent({ params }: RetailerPageProps) {
                   </p>
                 ) : (
                   <div className="rounded-md border">
-                    <div className="grid grid-cols-5 gap-4 p-4 font-medium">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 font-medium">
                       <div>Invoice Name</div>
                       <div>Amount</div>
                       <div>Paid Amount</div>
@@ -178,7 +182,7 @@ async function RetailerContent({ params }: RetailerPageProps) {
                     {sortedInvoices.map(invoice => (
                       <div
                         key={invoice.id}
-                        className="grid grid-cols-5 gap-4 border-t p-4"
+                        className="grid grid-cols-1 md:grid-cols-5 gap-4 border-t p-4"
                       >
                         <div>
                           <div className="font-medium">{invoice.invoiceName}</div>
@@ -205,10 +209,14 @@ async function RetailerContent({ params }: RetailerPageProps) {
                           <InvoiceForm
                             invoice={invoice}
                             retailers={retailers}
-                            trigger={<Button variant="outline" size="sm">Edit</Button>}
+                            trigger={
+                              <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
+                                 <EditIcon />Edit
+                              </Button>
+                            }
                           />
-                          <Button asChild variant="secondary" size="sm">
-                            <Link href={`/invoices/${invoice.id}`}>View</Link>
+                          <Button asChild variant="outline" size="sm" className="flex items-center cursor-pointer">
+                            <Link href={`/invoices/${invoice.id}`}><EyeIcon />View</Link>
                           </Button>
                         </div>
                       </div>

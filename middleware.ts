@@ -1,8 +1,17 @@
 // middleware.ts
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default clerkMiddleware({
-  publicRoutes: ["/sign-in", "/sign-up", "/dashboard"],
+const isProtectedRoute = createRouteMatcher([
+  "/((?!.+\\.[\\w]+$|_next).*)", // protect all routes except static files and _next
+  "/", 
+  "/(api|trpc)(.*)",            // include your API routes if needed
+  "/settings(.*)",              // explicitly include settings route
+]);
+
+export default clerkMiddleware((auth, req) => {
+  if (isProtectedRoute(req)) {
+    auth.protect();
+  }
 });
 
 export const config = {

@@ -196,7 +196,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : invoice ? "Update" : "Add"}
+              {isSubmitting ? "adding..." : invoice ? "Update" : "Add"}
             </Button>
           </DialogFooter>
         </form>

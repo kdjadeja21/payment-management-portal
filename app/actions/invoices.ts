@@ -1,29 +1,27 @@
 'use server'
 
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
-  doc, 
-  query, 
-  where, 
-  orderBy, 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  doc,
+  query,
+  where,
+  orderBy,
   serverTimestamp,
   Timestamp,
   getDoc,
   limit
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { Invoice, InvoiceFilters, DueCondition } from '@/types'
+import { Invoice, DueCondition } from '@/types'
 import { calculateDueDays, getStatusFromDueDays } from '@/lib/utils'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { getServerSession } from "@/lib/auth"
-import { Invoice as InvoiceType } from "@/types/invoice"
 
-export async function getInvoices(filters?: { 
+export async function getInvoices(filters?: {
   retailerId?: string
   dueDays?: {
     operator: '>' | '<' | '='
@@ -55,7 +53,7 @@ export async function getInvoices(filters?: {
     const today = new Date()
     const dueDate = data.dueDate.toDate()
     const dueDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    
+
     const invoice: Invoice = {
       id: doc.id,
       retailerId: data.retailerId,
@@ -71,7 +69,7 @@ export async function getInvoices(filters?: {
       createdAt: data.createdAt.toDate(),
       updatedAt: data.updatedAt.toDate(),
     }
-    
+
     return invoice
   })
 
@@ -95,17 +93,6 @@ export async function getInvoices(filters?: {
   return invoices
 }
 
-function filterByDueDays(invoices: Invoice[], dueCondition: DueCondition): Invoice[] {
-  const { condition, value } = dueCondition
-  
-  return invoices.filter(invoice => {
-    if (condition === '>') return invoice.dueDays > value
-    if (condition === '<') return invoice.dueDays < value
-    if (condition === '=') return invoice.dueDays === value
-    return true
-  })
-}
-
 export async function addInvoice(invoiceData: Omit<Invoice, 'id' | 'status' | 'dueDays' | 'createdAt' | 'updatedAt'>): Promise<Invoice> {
   try {
     const { userId } = await auth()
@@ -113,7 +100,7 @@ export async function addInvoice(invoiceData: Omit<Invoice, 'id' | 'status' | 'd
 
     const dueDays = calculateDueDays(invoiceData.dueDate)
     const status = getStatusFromDueDays(dueDays, false)
-    
+
     const invoicesRef = collection(db, "invoices")
     const docRef = await addDoc(invoicesRef, {
       ...invoiceData,
@@ -152,33 +139,33 @@ export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): 
     if (!userId) redirect('/sign-in')
 
     const invoiceRef = doc(db, "invoices", id)
-    
+
     // Verify invoice belongs to user
     const invoiceSnap = await getDoc(invoiceRef)
     if (!invoiceSnap.exists() || invoiceSnap.data().userId !== userId) {
       throw new Error('Invoice not found or unauthorized')
     }
-    
+
     // If dueDate is being updated, recalculate status
     if (invoiceData.dueDate) {
       const currentData = invoiceSnap.data()
       const isPaid = currentData?.paidAmount === currentData?.amount
-      
+
       const dueDays = calculateDueDays(invoiceData.dueDate)
       invoiceData.status = getStatusFromDueDays(dueDays, isPaid)
     }
-    
+
     // Convert dates to Firestore Timestamps
-    const dataToUpdate: any = { ...invoiceData }
+    const dataToUpdate: Record<string, unknown> = { ...invoiceData }
     if (invoiceData.invoiceDate) {
       dataToUpdate.invoiceDate = Timestamp.fromDate(invoiceData.invoiceDate)
     }
     if (invoiceData.dueDate) {
       dataToUpdate.dueDate = Timestamp.fromDate(invoiceData.dueDate)
     }
-    
+
     dataToUpdate.updatedAt = serverTimestamp()
-    
+
     await updateDoc(invoiceRef, dataToUpdate)
   } catch (error) {
     console.error('Error updating invoice:', error)
@@ -192,13 +179,13 @@ export async function deleteInvoice(id: string): Promise<void> {
     if (!userId) redirect('/sign-in')
 
     const invoiceRef = doc(db, "invoices", id)
-    
+
     // Verify invoice belongs to user
     const invoiceSnap = await getDoc(invoiceRef)
     if (!invoiceSnap.exists() || invoiceSnap.data().userId !== userId) {
       throw new Error('Invoice not found or unauthorized')
     }
-    
+
     await deleteDoc(invoiceRef)
   } catch (error) {
     console.error('Error deleting invoice:', error)
@@ -213,13 +200,13 @@ export async function markAsPaid(invoiceId: string): Promise<void> {
 
     const invoiceRef = doc(db, "invoices", invoiceId)
     const snapshot = await getDoc(invoiceRef)
-    
+
     if (!snapshot.exists() || snapshot.data().userId !== userId) {
       throw new Error('Invoice not found or unauthorized')
     }
-    
+
     const invoiceData = snapshot.data()
-    
+
     await updateDoc(invoiceRef, {
       status: 'paid',
       paidAmount: invoiceData.amount,

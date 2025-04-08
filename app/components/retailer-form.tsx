@@ -30,12 +30,14 @@ export function RetailerForm({ retailer, trigger }: RetailerFormProps) {
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     name: retailer?.name || "",
     email: retailer?.email || "",
     phone: retailer?.phone || "",
     address: retailer?.address || "",
-  })
+  }
+  
+  const [formData, setFormData] = useState(initialFormData)
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -64,9 +66,16 @@ export function RetailerForm({ retailer, trigger }: RetailerFormProps) {
       setIsSubmitting(false)
     }
   }
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setFormData(initialFormData)
+    }
+    setOpen(open)
+  }
   
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
