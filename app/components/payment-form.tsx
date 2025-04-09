@@ -65,9 +65,14 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
-          <DialogDescription>
-            Enter the payment amount received from {retailer.name}.
-            The payment will be applied to the oldest unpaid invoices first.
+          <DialogDescription className="text-gray-700">
+            <div className="mb-2">
+              Please enter the payment amount received from <strong>{retailer.name}</strong>. 
+              This payment will be applied to the oldest unpaid invoices first.
+            </div>
+            <div className="text-red-600 font-semibold">
+              Please double-check the amount entered. Once recorded, you cannot delete or edit the payment record.
+            </div>
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>

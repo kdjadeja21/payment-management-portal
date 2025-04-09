@@ -32,6 +32,28 @@ export function formatDate(date: Date | string | null | undefined): string {
   }
 }
 
+export function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return 'N/A'
+  
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date)
+    if (isNaN(dateObj.getTime())) return 'Invalid Date'
+    
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    }).format(dateObj)
+  } catch (error) {
+    console.error('Error formatting date and time:', error)
+    return 'Invalid Date'
+  }
+}
+
 export function calculateDueDays(dueDate: Date): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)

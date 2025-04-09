@@ -50,7 +50,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
 
   const retailerName = invoice?.retailerName || (retailers.find(r => r.id === defaultRetailerId)?.name || "");
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     retailerId: invoice?.retailerId || defaultRetailerId || "",
     retailerName: retailerName,
     invoiceName: invoice?.invoiceName || `INV-${new Date().getTime()}`,
@@ -59,7 +59,9 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
     dueDate: invoice?.dueDate || new Date(),
     paidAmount: invoice?.paidAmount || 0,
     remainingAmount: invoice?.remainingAmount || 0,
-  })
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const handleRetailerChange = (value: string) => {
     const retailer = retailers.find(r => r.id === value)
@@ -103,6 +105,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
       }
 
       setOpen(false)
+      setFormData(initialFormData); // Reset form data after submit
       router.refresh()
       onSuccess?.()
     } catch (error) {
@@ -111,6 +114,11 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleCancel = () => {
+    setOpen(false);
+    setFormData(initialFormData); // Reset form data on cancel
   }
 
   return (
@@ -227,7 +235,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
             )}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting || !formData.retailerId}>

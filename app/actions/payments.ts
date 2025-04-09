@@ -183,7 +183,7 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
       invoicesRef,
       where("retailerId", "==", retailerId),
       where("status", "in", ["due", "overdue"]),
-      orderBy("dueDate", "asc")
+      orderBy("invoiceDate", "asc")
     )
     const snapshot = await getDocs(q)
 
@@ -245,6 +245,38 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
 
   } catch (error) {
     console.error('Error applying lump sum payment:', error)
+    throw error
+  }
+}
+
+export async function getPaymentById(paymentId: string): Promise<Payment> {
+  try {
+    const { userId } = await auth()
+    if (!userId) redirect('/sign-in')
+
+    const paymentRef = doc(db, "payments", paymentId)
+    const paymentSnap = await getDoc(paymentRef)
+
+    if (!paymentSnap.exists()) {
+      throw new Error("Payment not found")
+    }
+
+    const paymentData = paymentSnap.data()
+    if (paymentData.userId !== userId) {
+      throw new Error("Unauthorized to view this payment")
+    }
+
+    return {
+      id: paymentSnap.id,
+      retailerId: paymentData.retailerId,
+      retailerName: paymentData.retailerName,
+      amount: paymentData.amount,
+      paymentDate: paymentData.paymentDate?.toDate() || new Date(),
+      invoices: paymentData.invoices || [],
+      createdAt: paymentData.createdAt?.toDate() || new Date(),
+    }
+  } catch (error) {
+    console.error('Error fetching payment:', error)
     throw error
   }
 }

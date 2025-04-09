@@ -298,17 +298,25 @@ function RetailerContent() {
                   <p className="text-center text-muted-foreground py-4">No payments recorded for this retailer.</p>
                 ) : (
                   <div className="rounded-md border">
-                    <div className="grid grid-cols-3 gap-4 p-4 font-medium">
+                    <div className="grid grid-cols-4 gap-4 p-4 font-medium">
                       <div>Payment Date</div>
                       <div>Amount</div>
                       <div>Applied To</div>
+                      <div className="text-right">Actions</div>
                     </div>
                     {sortedPayments.map((payment) => (
-                      <div key={payment.id} className="grid grid-cols-3 gap-4 border-t p-4">
+                      <div key={payment.id} className="grid grid-cols-4 gap-4 border-t p-4">
                         <div>{formatDate(payment.paymentDate)}</div>
                         <div>{formatCurrency(payment.amount)}</div>
                         <div>
                           <div className="text-sm">{payment.invoices.length} {payment.invoices.length === 1 ? "invoice" : "invoices"}</div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Link className="cursor-pointer" href={`/payments/${payment.id}`}>
+                            <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
+                              View Details
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     ))}
