@@ -110,7 +110,7 @@ function RetailerContent() {
   }
 
   if (!retailer) {
-    return null;
+    notFound();
   }
 
   return (
