@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { notFound, useParams } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -71,7 +71,7 @@ function PaymentDetailsContent() {
   }
 
   if (!payment) {
-    return null
+    notFound();
   }
 
   return (
