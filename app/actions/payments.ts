@@ -39,10 +39,7 @@ export async function getPayments(filters?: { invoiceId?: string; retailerId?: s
       q = query(q, where('retailerId', '==', filters.retailerId))
     }
 
-    console.log({q})
-
     const querySnapshot = await getDocs(q)
-    console.log({ querySnapshot: querySnapshot.docs.map(doc => doc.data()) })
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -125,12 +122,49 @@ export async function updatePayment(id: string, paymentData: Partial<Payment>): 
   }
 }
 
-export async function deletePayment(id: string): Promise<void> {
+export async function deletePayment(paymentId: string): Promise<void> {
   try {
     const { userId } = await auth()
     if (!userId) redirect('/sign-in')
 
-    const paymentRef = doc(db, "payments")
+    // Check if payment exists
+    const paymentRef = doc(db, "payments", paymentId)
+    const paymentSnap = await getDoc(paymentRef)
+    if (!paymentSnap.exists()) {
+      throw new Error("Payment not found")
+    }
+
+    // Verify payment belongs to user
+    if (paymentSnap.data().userId !== userId) {
+      throw new Error("Unauthorized to delete this payment")
+    }
+
+    // Get payment details to update associated invoices
+    const paymentData = paymentSnap.data()
+    const invoices = paymentData.invoices || []
+
+    // Update associated invoices to remove the payment
+    for (const invoice of invoices) {
+      const invoiceRef = doc(db, "invoices", invoice.invoiceId)
+      const invoiceSnap = await getDoc(invoiceRef)
+      
+      if (invoiceSnap.exists()) {
+        const invoiceData = invoiceSnap.data()
+        const newPaidAmount = (invoiceData.paidAmount || 0) - invoice.amountApplied
+        const newRemainingAmount = invoiceData.amount - newPaidAmount
+        
+        await updateDoc(invoiceRef, {
+          paidAmount: newPaidAmount,
+          remainingAmount: newRemainingAmount,
+          status: newRemainingAmount <= 0 ? 'paid' : 
+                 newRemainingAmount === invoiceData.amount ? 'due' : 
+                 invoiceData.status,
+          updatedAt: serverTimestamp()
+        })
+      }
+    }
+
+    // Delete the payment
     await deleteDoc(paymentRef)
   } catch (error) {
     console.error('Error deleting payment:', error)

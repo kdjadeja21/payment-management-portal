@@ -174,19 +174,32 @@ export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): 
   }
 }
 
-export async function deleteInvoice(id: string): Promise<void> {
+export async function deleteInvoice(invoiceId: string): Promise<void> {
   try {
     const { userId } = await auth()
     if (!userId) redirect('/sign-in')
 
-    const invoiceRef = doc(db, "invoices", id)
-
-    // Verify invoice belongs to user
+    // Check if invoice exists
+    const invoiceRef = doc(db, "invoices", invoiceId)
     const invoiceSnap = await getDoc(invoiceRef)
-    if (!invoiceSnap.exists() || invoiceSnap.data().userId !== userId) {
-      throw new Error('Invoice not found or unauthorized')
+    if (!invoiceSnap.exists()) {
+      throw new Error("Invoice not found")
     }
 
+    // Check if invoice has any associated payments
+    const paymentsRef = collection(db, "payments")
+    const q = query(
+      paymentsRef,
+      where("userId", "==", userId),
+      where("invoices", "array-contains", { invoiceId })
+    )
+    const paymentSnapshot = await getDocs(q)
+
+    if (!paymentSnapshot.empty) {
+      throw new Error("Cannot delete invoice with associated payments. Please delete all related payments first.")
+    }
+
+    // If no payments found, proceed with deletion
     await deleteDoc(invoiceRef)
   } catch (error) {
     console.error('Error deleting invoice:', error)

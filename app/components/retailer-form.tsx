@@ -18,14 +18,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Retailer } from "@/types"
-import { addRetailer, updateRetailer } from "@/app/actions/retailers"
+import { addRetailer, updateRetailer, getRetailers } from "@/app/actions/retailers"
 
 interface RetailerFormProps {
   retailer?: Retailer
   trigger: React.ReactNode
+  onSuccess?: () => void // Added onSuccess prop
 }
 
-export function RetailerForm({ retailer, trigger }: RetailerFormProps) {
+export function RetailerForm({ retailer, trigger, onSuccess }: RetailerFormProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -55,10 +56,13 @@ export function RetailerForm({ retailer, trigger }: RetailerFormProps) {
       } else {
         await addRetailer(formData)
         toast.success("Retailer added successfully")
+        // Fetch the updated retailer data after adding
+        await getRetailers(); // Assuming getRetailer fetches the updated list or data
       }
       
       setOpen(false)
       router.refresh()
+      if (onSuccess) onSuccess(); // Call onSuccess if provided
     } catch (error) {
       console.error("Error saving retailer:", error)
       toast.error("Failed to save retailer. Please try again.")

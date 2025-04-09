@@ -1,86 +1,102 @@
-"use client"
+"use client";
+const dynamic = "force-dynamic";
 
-import { Suspense, useEffect, useState } from "react"
-import { notFound } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, EditIcon, EyeIcon, Plus } from 'lucide-react'
-import { useParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from "react";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, EditIcon, EyeIcon, Plus, Trash2 } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
-import { getRetailers } from "@/app/actions/retailers"
-import { getInvoices } from "@/app/actions/invoices"
-import { getPayments } from "@/app/actions/payments"
-import { formatCurrency, formatDate } from "@/lib/utils"
-import { StatusBadge } from "@/app/components/status-badge"
-import { RetailerForm } from "@/app/components/retailer-form"
-import { InvoiceForm } from "@/app/components/invoice-form"
-import { PaymentForm } from "@/app/components/payment-form"
-import DashboardLayout from "@/app/components/dashboard-layout"
-import { Retailer, Invoice, Payment } from "@/types"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getRetailers } from "@/app/actions/retailers";
+import { getInvoices } from "@/app/actions/invoices";
+import { getPayments } from "@/app/actions/payments";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { StatusBadge } from "@/app/components/status-badge";
+import { RetailerForm } from "@/app/components/retailer-form";
+import { InvoiceForm } from "@/app/components/invoice-form";
+import { PaymentForm } from "@/app/components/payment-form";
+import DashboardLayout from "@/app/components/dashboard-layout";
+import { Retailer, Invoice, Payment } from "@/types";
+import { deleteRetailer } from "@/app/actions/retailers";
+import { ConfirmationDialog } from "@/app/components/confirmation-dialog";
 
 function RetailerContent() {
-  // const params = useParams()
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
 
-  const { id } = useParams<{ id: string }>()
-
-  // console.log({ params })
-  const [retailers, setRetailers] = useState<Retailer[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
+  const [retailers, setRetailers] = useState<Retailer[]>([]);
+  const [retailer, setRetailer] = useState<Retailer | null>(null); // New state for retailer
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       const [retailersData, invoicesData, paymentsData] = await Promise.all([
         getRetailers(),
         getInvoices({ retailerId: id as string }),
-        getPayments({ retailerId: id as string })
-      ])
-      console.log({ retailersData })
-      setRetailers(retailersData)
-      setInvoices(invoicesData)
-      setPayments(paymentsData)
-      setLoading(false)
+        getPayments({ retailerId: id as string }),
+      ]);
+      setRetailers(retailersData);
+      setInvoices(invoicesData);
+      setPayments(paymentsData);
+      setLoading(false);
 
-      const foundRetailer = retailersData.find(r => r.id === id)
+      const foundRetailer = retailersData.find((r) => r.id === id);
 
       if (!foundRetailer) {
         notFound();
+      } else {
+        setRetailer(foundRetailer); // Save the found retailer in the new state
       }
     }
 
-    fetchData()
-  }, [id]) // Ensure useEffect is called when params.id changes
-
-  console.log({ retailers })
-
-  const retailer = retailers[0]; // Assuming retailers is an array with a single retailer based on the passed param
+    fetchData();
+  }, [id]); // Ensure useEffect is called when params.id changes
 
   // Calculate stats
-  const totalInvoiced = invoices.reduce((sum, invoice) => sum + invoice.amount, 0)
-  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0)
+  const totalInvoiced = invoices.reduce(
+    (sum, invoice) => sum + invoice.amount,
+    0
+  );
+  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalOutstanding = invoices
-    .filter(invoice => invoice.status === 'due' || invoice.status === 'overdue')
-    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0)
+    .filter(
+      (invoice) => invoice.status === "due" || invoice.status === "overdue"
+    )
+    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
   const totalOverdue = invoices
-    .filter(invoice => invoice.status === 'overdue')
-    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0)
+    .filter((invoice) => invoice.status === "overdue")
+    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
 
   // Sort invoices by date (newest first)
   const sortedInvoices = [...invoices].sort(
     (a, b) => b.invoiceDate.getTime() - a.invoiceDate.getTime()
-  )
+  );
 
   // Sort payments by date (newest first)
   const sortedPayments = [...payments].sort(
     (a, b) => b.paymentDate.getTime() - a.paymentDate.getTime()
-  )
+  );
 
   if (loading) {
-    return <RetailerSkeleton />
+    return <RetailerSkeleton />;
+  }
+
+  if (!retailer) {
+    return null; // Handle case where retailer is not found
   }
 
   return (
@@ -98,7 +114,32 @@ function RetailerContent() {
         <div className="flex items-center gap-4">
           <RetailerForm
             retailer={retailer}
-            trigger={<Button className="cursor-pointer" variant="outline" size="sm">Edit Retailer</Button>}
+            trigger={
+              <Button className="cursor-pointer" variant="outline" size="sm">
+                Edit Retailer
+              </Button>
+            }
+          />
+          <ConfirmationDialog
+            title="Delete Retailer"
+            description="Are you sure you want to delete this retailer? This action cannot be undone. Note: You can only delete retailers that have no associated invoices."
+            trigger={
+              <Button
+                variant="destructive"
+                className="cursor-pointer"
+                disabled={invoices.length > 0}
+                title={
+                  invoices.length > 0
+                    ? "Cannot delete retailer with associated invoices"
+                    : ""
+                }
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Retailer
+              </Button>
+            }
+            onConfirm={() => deleteRetailer(retailer.id)}
+            onSuccess={() => router.push("/retailers")}
           />
           {totalOutstanding > 0 && (
             <PaymentForm retailer={retailer} totalDue={totalOutstanding} />
@@ -109,12 +150,16 @@ function RetailerContent() {
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoiced</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Invoiced
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalInvoiced)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalInvoiced)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {invoices.length} {invoices.length === 1 ? 'invoice' : 'invoices'}
+              {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
             </p>
           </CardContent>
         </Card>
@@ -123,9 +168,11 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalPaid)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalPaid)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {payments.length} {payments.length === 1 ? 'payment' : 'payments'}
+              {payments.length} {payments.length === 1 ? "payment" : "payments"}
             </p>
           </CardContent>
         </Card>
@@ -134,9 +181,16 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalOutstanding)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {invoices.filter(i => i.status === 'due' || i.status === 'overdue').length} unpaid
+              {
+                invoices.filter(
+                  (i) => i.status === "due" || i.status === "overdue"
+                ).length
+              }{" "}
+              unpaid
             </p>
           </CardContent>
         </Card>
@@ -145,9 +199,11 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalOverdue)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalOverdue)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {invoices.filter(i => i.status === 'overdue').length} overdue
+              {invoices.filter((i) => i.status === "overdue").length} overdue
             </p>
           </CardContent>
         </Card>
@@ -156,16 +212,25 @@ function RetailerContent() {
       <Tabs defaultValue="invoices">
         <div className="flex items-center justify-between">
           <TabsList>
-            <TabsTrigger className="cursor-pointer" value="invoices">Invoices</TabsTrigger>
-            <TabsTrigger className="cursor-pointer" value="payments">Payments</TabsTrigger>
-            <TabsTrigger className="cursor-pointer" value="details">Details</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="invoices">
+              Invoices
+            </TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="payments">
+              Payments
+            </TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="details">
+              Details
+            </TabsTrigger>
           </TabsList>
 
           <InvoiceForm
             retailers={retailers}
             defaultRetailerId={retailer.id}
             trigger={
-              <Button size="sm" className="bg-blue-700 hover:bg-blue-800 text-white cursor-pointer">
+              <Button
+                size="sm"
+                className="bg-blue-700 hover:bg-blue-800 text-white cursor-pointer"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Invoice
               </Button>
@@ -200,44 +265,66 @@ function RetailerContent() {
                       <div>Status</div>
                       <div className="text-right">Actions</div>
                     </div>
-                    {sortedInvoices.map(invoice => (
+                    {sortedInvoices.map((invoice) => (
                       <div
                         key={invoice.id}
                         className="grid grid-cols-1 md:grid-cols-5 gap-4 border-t p-4"
                       >
                         <div>
-                          <div className="font-medium">{invoice.invoiceName}</div>
+                          <div className="font-medium">
+                            {invoice.invoiceName}
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             {formatDate(invoice.invoiceDate)}
                           </div>
                         </div>
                         <div>
-                          <div className="font-medium">{formatCurrency(invoice.amount)}</div>
+                          <div className="font-medium">
+                            {formatCurrency(invoice.amount)}
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             Due: {formatDate(invoice.dueDate)}
                           </div>
                         </div>
                         <div>
-                          <div className="font-medium">{formatCurrency(invoice.paidAmount)}</div>
+                          <div className="font-medium">
+                            {formatCurrency(invoice.paidAmount)}
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             Remaining: {formatCurrency(invoice.remainingAmount)}
                           </div>
                         </div>
                         <div className="flex flex-col gap-1">
-                          <StatusBadge status={invoice.status} dueDays={invoice.dueDays} />
+                          <StatusBadge
+                            status={invoice.status}
+                            dueDays={invoice.dueDays}
+                          />
                         </div>
                         <div className="flex justify-end gap-2">
                           <InvoiceForm
                             invoice={invoice}
                             retailers={retailers}
                             trigger={
-                              <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
-                                <EditIcon />Edit
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center cursor-pointer"
+                              >
+                                <EditIcon />
+                                Edit
                               </Button>
                             }
                           />
-                          <Button asChild variant="outline" size="sm" className="flex items-center cursor-pointer">
-                            <Link href={`/invoices/${invoice.id}`}><EyeIcon />View</Link>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center cursor-pointer"
+                          >
+                            <Link href={`/invoices/${invoice.id}`}>
+                              <EyeIcon />
+                              View
+                            </Link>
                           </Button>
                         </div>
                       </div>
@@ -270,7 +357,7 @@ function RetailerContent() {
                       <div>Amount</div>
                       <div>Applied To</div>
                     </div>
-                    {sortedPayments.map(payment => (
+                    {sortedPayments.map((payment) => (
                       <div
                         key={payment.id}
                         className="grid grid-cols-3 gap-4 border-t p-4"
@@ -279,7 +366,10 @@ function RetailerContent() {
                         <div>{formatCurrency(payment.amount)}</div>
                         <div>
                           <div className="text-sm">
-                            {payment.invoices.length} {payment.invoices.length === 1 ? 'invoice' : 'invoices'}
+                            {payment.invoices.length}{" "}
+                            {payment.invoices.length === 1
+                              ? "invoice"
+                              : "invoices"}
                           </div>
                         </div>
                       </div>
@@ -295,28 +385,30 @@ function RetailerContent() {
           <Card>
             <CardHeader>
               <CardTitle>Retailer Details</CardTitle>
-              <CardDescription>
-                Contact information for {retailer.name}
-              </CardDescription>
+              <CardDescription>Manage retailer information</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium">Name</h3>
+                  <p className="text-muted-foreground">{retailer.name}</p>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-medium">Email</h3>
+                    <h3 className="text-sm font-medium">Email</h3>
                     <p className="text-muted-foreground">
                       {retailer.email || "Not provided"}
                     </p>
                   </div>
                   <div>
-                    <h3 className="font-medium">Phone</h3>
+                    <h3 className="text-sm font-medium">Phone</h3>
                     <p className="text-muted-foreground">
                       {retailer.phone || "Not provided"}
                     </p>
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-medium">Address</h3>
+                  <h3 className="text-sm font-medium">Address</h3>
                   <p className="text-muted-foreground whitespace-pre-line">
                     {retailer.address || "Not provided"}
                   </p>
@@ -327,7 +419,7 @@ function RetailerContent() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
 
 export default function RetailerPage() {
@@ -337,7 +429,7 @@ export default function RetailerPage() {
         <RetailerContent />
       </Suspense>
     </DashboardLayout>
-  )
+  );
 }
 
 function RetailerSkeleton() {
@@ -355,17 +447,19 @@ function RetailerSkeleton() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        {Array(4).fill(0).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-5 w-28" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-24 mb-1" />
-              <Skeleton className="h-4 w-16" />
-            </CardContent>
-          </Card>
-        ))}
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-28" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-24 mb-1" />
+                <Skeleton className="h-4 w-16" />
+              </CardContent>
+            </Card>
+          ))}
       </div>
 
       <div className="flex items-center justify-between">
@@ -381,20 +475,26 @@ function RetailerSkeleton() {
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-5 gap-4 p-4">
-              {Array(5).fill(0).map((_, i) => (
-                <Skeleton key={i} className="h-5 w-full" />
-              ))}
-            </div>
-            {Array(5).fill(0).map((_, i) => (
-              <div key={i} className="grid grid-cols-5 gap-4 border-t p-4">
-                {Array(5).fill(0).map((_, j) => (
-                  <Skeleton key={j} className="h-5 w-full" />
+              {Array(5)
+                .fill(0)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-5 w-full" />
                 ))}
-              </div>
-            ))}
+            </div>
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <div key={i} className="grid grid-cols-5 gap-4 border-t p-4">
+                  {Array(5)
+                    .fill(0)
+                    .map((_, j) => (
+                      <Skeleton key={j} className="h-5 w-full" />
+                    ))}
+                </div>
+              ))}
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

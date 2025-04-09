@@ -7,8 +7,8 @@ import { Toaster } from 'sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Payment Management Portal',
-  description: 'Professional Trading Platform Dashboard',
+  title: 'Udyog360 | Business Management Portal',
+  description: 'Professional Business Management Platform',
 }
 
 export default function RootLayout({

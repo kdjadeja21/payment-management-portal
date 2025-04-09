@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Download, Printer } from 'lucide-react'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import { jsPDF } from "jspdf";
+import { useRouter } from 'next/navigation'
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,15 +17,17 @@ import { StatusBadge } from "@/app/components/status-badge"
 import { InvoiceForm } from "@/app/components/invoice-form"
 import DashboardLayout from "@/app/components/dashboard-layout"
 import { Invoice, Retailer } from "@/types"
+import { deleteInvoice } from "@/app/actions/invoices"
+import { ConfirmationDialog } from "@/app/components/confirmation-dialog"
 
 
 export default function InvoicePage() {
-  // TODO: Commented out print and download feature for now
   const { id } = useParams<{ id: string }>() // Specify the type for useParams
   const [invoice, setInvoice] = useState<Invoice>({} as Invoice) // Initialize with an empty object
   const [retailer, setRetailer] = useState<Retailer>({} as Retailer) // Initialize with an empty object
   const [retailers, setRetailers] = useState<Retailer[]>([])
   const [loading, setLoading] = useState<boolean>(true)
+  const router = useRouter()
 
   useEffect(() => {
     const fetchInvoiceDetails = async () => {
@@ -61,51 +63,6 @@ export default function InvoicePage() {
     fetchInvoiceDetails()
   }, [id])
 
-  // const handlePrint = () => {
-  //   const printContent = document.getElementById('invoice-info');
-  //   if (printContent) {
-  //     const newWindow = window.open('', '_blank');
-  //     newWindow?.document.write(`
-  //       <html>
-  //         <head>
-  //           <title>Print Invoice</title>
-  //           <style>
-  //             /* Add any necessary styles for printing */
-  //             body { font-family: Arial, sans-serif; }
-  //             .card { margin: 20px; padding: 20px; border: 1px solid #ccc; }
-  //           </style>
-  //         </head>
-  //         <body>
-  //           ${printContent.innerHTML}
-  //         </body>
-  //       </html>
-  //     `);
-  //     newWindow?.document.close();
-  //     newWindow?.print();
-  //     // newWindow?.close();
-  //   }
-  // };
-
-  // const handleDownload = () => {
-  //   if (invoice) {
-  //     try {
-  //       const element = document.getElementById('invoice-content');
-  //       if (element) { // Check if element is not null
-  //         const pdf = new jsPDF();
-  //         pdf.html(element, {
-  //           callback: function (doc) {
-  //             doc.save(`invoice_${invoice.id}.pdf`);
-  //           }
-  //         });
-  //       } else {
-  //         console.error("Element not found for PDF generation");
-  //       }
-  //     } catch (error) {
-  //       console.error("Error generating PDF:", error);
-  //     }
-  //   }
-  // };
-
   if (loading) {
     return <InvoiceSkeleton />
   }
@@ -127,19 +84,23 @@ export default function InvoicePage() {
             <InvoiceForm
               invoice={invoice}
               retailers={retailers}
-              trigger={<Button variant="outline" size="sm">Edit Invoice</Button>}
+              trigger={<Button className="cursor-pointer" variant="outline" size="sm">Edit Invoice</Button>}
             />
-            {invoice?.status !== 'paid' && (
-              <form action={async () => {
-                // try {
-                //   await markAsPaid(invoice.id)
-                // } catch (error) {
-                //   console.error("Error marking invoice as paid:", error)
-                // }
-              }}>
-                <Button type="submit" size="sm">Mark as Paid</Button>
-              </form>
-            )}
+            <ConfirmationDialog
+                title="Delete Invoice"
+                description="Are you sure you want to delete this invoice? This action cannot be undone."
+                trigger={
+                  <Button 
+                    variant="destructive" 
+                    className="cursor-pointer"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Invoice
+                  </Button>
+                }
+                onConfirm={() => deleteInvoice(invoice.id)}
+                onSuccess={() => router.push('/invoices')}
+              />
           </div>
         </div>
 
@@ -202,14 +163,7 @@ export default function InvoicePage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              {/* <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
-                <Printer className="h-4 w-4" />
-                Print
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2" onClick={handleDownload}>
-                <Download className="h-4 w-4" />
-                Download PDF
-              </Button> */}
+              {/* Print and Download buttons removed */}
             </CardFooter>
           </Card>
 

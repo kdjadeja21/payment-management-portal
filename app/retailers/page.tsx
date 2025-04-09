@@ -95,8 +95,6 @@ function RetailersContent() {
     router.push(`/retailers?${params.toString()}`)
   }
 
-  
-
   if (loading) {
     return <RetailersSkeleton />
   }
@@ -121,6 +119,26 @@ function RetailersContent() {
               Add Retailer
             </Button>
           }
+          onSuccess={() => {
+            // Refresh the data
+            const fetchData = async () => {
+              try {
+                const [retailersData, invoicesData, paymentsData] = await Promise.all([
+                  getRetailers(),
+                  getInvoices(),
+                  getPayments()
+                ])
+                setRetailers(retailersData)
+                setInvoices(invoicesData)
+                setPayments(paymentsData)
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'An error occurred')
+              } finally {
+                setLoading(false)
+              }
+            }
+            fetchData()
+          }}
         />
       </div>
       
@@ -165,13 +183,13 @@ function RetailersContent() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
+                  <Button asChild variant="secondary" size="sm" className="cursor-pointer">
+                    <Link href={`/retailers/${retailer.id}`}>View Details</Link>
+                  </Button>
                   <RetailerForm
                     retailer={retailer}
                     trigger={<Button className="cursor-pointer" variant="outline" size="sm">Edit</Button>}
                   />
-                  <Button asChild variant="secondary" size="sm" className="cursor-pointer">
-                    <Link href={`/retailers/${retailer.id}`}>View Details</Link>
-                  </Button>
                 </CardFooter>
               </Card>
             ))}

@@ -104,7 +104,7 @@ export default function DashboardLayout({
         </Sheet>
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
           <CreditCard className="h-6 w-6" />
-          <span className="hidden md:inline-block">Payment Management Portal</span>
+          <span className="hidden md:inline-block">Udyog360</span>
         </Link>
         <div className="flex-1" />
         <div className="flex items-center gap-4">
