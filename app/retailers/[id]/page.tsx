@@ -13,7 +13,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -37,7 +36,7 @@ function RetailerContent() {
   const router = useRouter();
 
   const [retailers, setRetailers] = useState<Retailer[]>([]);
-  const [retailer, setRetailer] = useState<Retailer | null>(null); // New state for retailer
+  const [retailer, setRetailer] = useState<Retailer | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,44 +58,59 @@ function RetailerContent() {
       if (!foundRetailer) {
         notFound();
       } else {
-        setRetailer(foundRetailer); // Save the found retailer in the new state
+        setRetailer(foundRetailer);
       }
     }
 
     fetchData();
-  }, [id]); // Ensure useEffect is called when params.id changes
+  }, [id]);
+
+  const refreshData = async () => {
+    const [retailersData, invoicesData, paymentsData] = await Promise.all([
+      getRetailers(),
+      getInvoices({ retailerId: id as string }),
+      getPayments({ retailerId: id as string }),
+    ]);
+    setRetailers(retailersData);
+    setInvoices(invoicesData);
+    setPayments(paymentsData);
+
+    const foundRetailer = retailersData.find((r) => r.id === id);
+
+    if (!foundRetailer) {
+      notFound();
+    } else {
+      setRetailer(foundRetailer);
+    }
+  };
+
+  const handleRetailerSuccess = () => {
+    refreshData();
+  };
+
+  const handleInvoiceSuccess = () => {
+    refreshData();
+  };
+
+  const handlePaymentSuccess = () => {
+    refreshData();
+  };
 
   // Calculate stats
-  const totalInvoiced = invoices.reduce(
-    (sum, invoice) => sum + invoice.amount,
-    0
-  );
+  const totalInvoiced = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const totalOutstanding = invoices
-    .filter(
-      (invoice) => invoice.status === "due" || invoice.status === "overdue"
-    )
-    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
-  const totalOverdue = invoices
-    .filter((invoice) => invoice.status === "overdue")
-    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
+  const totalOutstanding = invoices.filter((invoice) => invoice.status === "due" || invoice.status === "overdue").reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
+  const totalOverdue = invoices.filter((invoice) => invoice.status === "overdue").reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
 
-  // Sort invoices by date (newest first)
-  const sortedInvoices = [...invoices].sort(
-    (a, b) => b.invoiceDate.getTime() - a.invoiceDate.getTime()
-  );
-
-  // Sort payments by date (newest first)
-  const sortedPayments = [...payments].sort(
-    (a, b) => b.paymentDate.getTime() - a.paymentDate.getTime()
-  );
+  const sortedInvoices = [...invoices].sort((a, b) => b.invoiceDate.getTime() - a.invoiceDate.getTime());
+  const sortedPayments = [...payments].sort((a, b) => b.paymentDate.getTime() - a.paymentDate.getTime());
 
   if (loading) {
     return <RetailerSkeleton />;
   }
 
   if (!retailer) {
-    return null; // Handle case where retailer is not found
+    return null;
   }
 
   return (
@@ -114,6 +128,7 @@ function RetailerContent() {
         <div className="flex items-center gap-4">
           <RetailerForm
             retailer={retailer}
+            onSuccess={handleRetailerSuccess}
             trigger={
               <Button className="cursor-pointer" variant="outline" size="sm">
                 Edit Retailer
@@ -142,7 +157,7 @@ function RetailerContent() {
             onSuccess={() => router.push("/retailers")}
           />
           {totalOutstanding > 0 && (
-            <PaymentForm retailer={retailer} totalDue={totalOutstanding} />
+            <PaymentForm retailer={retailer} totalDue={totalOutstanding} onSuccess={handlePaymentSuccess} />
           )}
         </div>
       </div>
@@ -150,17 +165,11 @@ function RetailerContent() {
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Invoiced
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Invoiced</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalInvoiced)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
-            </p>
+            <div className="text-2xl font-bold">{formatCurrency(totalInvoiced)}</div>
+            <p className="text-xs text-muted-foreground">{invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}</p>
           </CardContent>
         </Card>
         <Card>
@@ -168,12 +177,8 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalPaid)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {payments.length} {payments.length === 1 ? "payment" : "payments"}
-            </p>
+            <div className="text-2xl font-bold">{formatCurrency(totalPaid)}</div>
+            <p className="text-xs text-muted-foreground">{payments.length} {payments.length === 1 ? "payment" : "payments"}</p>
           </CardContent>
         </Card>
         <Card>
@@ -181,17 +186,8 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalOutstanding)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {
-                invoices.filter(
-                  (i) => i.status === "due" || i.status === "overdue"
-                ).length
-              }{" "}
-              unpaid
-            </p>
+            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</div>
+            <p className="text-xs text-muted-foreground">{invoices.filter((i) => i.status === "due" || i.status === "overdue").length} unpaid</p>
           </CardContent>
         </Card>
         <Card>
@@ -199,12 +195,8 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalOverdue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {invoices.filter((i) => i.status === "overdue").length} overdue
-            </p>
+            <div className="text-2xl font-bold">{formatCurrency(totalOverdue)}</div>
+            <p className="text-xs text-muted-foreground">{invoices.filter((i) => i.status === "overdue").length} overdue</p>
           </CardContent>
         </Card>
       </div>
@@ -212,33 +204,21 @@ function RetailerContent() {
       <Tabs defaultValue="invoices">
         <div className="flex items-center justify-between">
           <TabsList>
-            <TabsTrigger className="cursor-pointer" value="invoices">
-              Invoices
-            </TabsTrigger>
-            <TabsTrigger className="cursor-pointer" value="payments">
-              Payments
-            </TabsTrigger>
-            <TabsTrigger className="cursor-pointer" value="details">
-              Details
-            </TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="payments">Payments</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="details">Details</TabsTrigger>
           </TabsList>
 
           <InvoiceForm
             retailers={retailers}
             defaultRetailerId={retailer.id}
+            onSuccess={handleInvoiceSuccess}
             trigger={
-              <Button
-                size="sm"
-                className="bg-blue-700 hover:bg-blue-800 text-white cursor-pointer"
-              >
+              <Button size="sm" className="bg-blue-700 hover:bg-blue-800 text-white cursor-pointer">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Invoice
               </Button>
             }
-            onSuccess={() => {
-              // Refresh the page to get updated data
-              // window.location.reload()
-            }}
           />
         </div>
 
@@ -246,16 +226,12 @@ function RetailerContent() {
           <Card>
             <CardHeader>
               <CardTitle>Invoices</CardTitle>
-              <CardDescription>
-                Manage invoices for {retailer.name}
-              </CardDescription>
+              <CardDescription>Manage invoices for {retailer.name}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {sortedInvoices.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
-                    No invoices found for this retailer.
-                  </p>
+                  <p className="text-center text-muted-foreground py-4">No invoices found for this retailer.</p>
                 ) : (
                   <div className="rounded-md border">
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 font-medium">
@@ -266,61 +242,35 @@ function RetailerContent() {
                       <div className="text-right">Actions</div>
                     </div>
                     {sortedInvoices.map((invoice) => (
-                      <div
-                        key={invoice.id}
-                        className="grid grid-cols-1 md:grid-cols-5 gap-4 border-t p-4"
-                      >
+                      <div key={invoice.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 border-t p-4">
                         <div>
-                          <div className="font-medium">
-                            {invoice.invoiceName}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatDate(invoice.invoiceDate)}
-                          </div>
+                          <div className="font-medium">{invoice.invoiceName}</div>
+                          <div className="text-sm text-muted-foreground">{formatDate(invoice.invoiceDate)}</div>
                         </div>
                         <div>
-                          <div className="font-medium">
-                            {formatCurrency(invoice.amount)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Due: {formatDate(invoice.dueDate)}
-                          </div>
+                          <div className="font-medium">{formatCurrency(invoice.amount)}</div>
+                          <div className="text-sm text-muted-foreground">Due: {formatDate(invoice.dueDate)}</div>
                         </div>
                         <div>
-                          <div className="font-medium">
-                            {formatCurrency(invoice.paidAmount)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Remaining: {formatCurrency(invoice.remainingAmount)}
-                          </div>
+                          <div className="font-medium">{formatCurrency(invoice.paidAmount)}</div>
+                          <div className="text-sm text-muted-foreground">Remaining: {formatCurrency(invoice.remainingAmount)}</div>
                         </div>
                         <div className="flex flex-col gap-1">
-                          <StatusBadge
-                            status={invoice.status}
-                            dueDays={invoice.dueDays}
-                          />
+                          <StatusBadge status={invoice.status} dueDays={invoice.dueDays} />
                         </div>
                         <div className="flex justify-end gap-2">
                           <InvoiceForm
                             invoice={invoice}
                             retailers={retailers}
+                            onSuccess={handleInvoiceSuccess}
                             trigger={
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex items-center cursor-pointer"
-                              >
+                              <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
                                 <EditIcon />
                                 Edit
                               </Button>
                             }
                           />
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center cursor-pointer"
-                          >
+                          <Button asChild variant="outline" size="sm" className="flex items-center cursor-pointer">
                             <Link href={`/invoices/${invoice.id}`}>
                               <EyeIcon />
                               View
@@ -340,16 +290,12 @@ function RetailerContent() {
           <Card>
             <CardHeader>
               <CardTitle>Payment History</CardTitle>
-              <CardDescription>
-                View payment history for {retailer.name}
-              </CardDescription>
+              <CardDescription>View payment history for {retailer.name}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {sortedPayments.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
-                    No payments recorded for this retailer.
-                  </p>
+                  <p className="text-center text-muted-foreground py-4">No payments recorded for this retailer.</p>
                 ) : (
                   <div className="rounded-md border">
                     <div className="grid grid-cols-3 gap-4 p-4 font-medium">
@@ -358,19 +304,11 @@ function RetailerContent() {
                       <div>Applied To</div>
                     </div>
                     {sortedPayments.map((payment) => (
-                      <div
-                        key={payment.id}
-                        className="grid grid-cols-3 gap-4 border-t p-4"
-                      >
+                      <div key={payment.id} className="grid grid-cols-3 gap-4 border-t p-4">
                         <div>{formatDate(payment.paymentDate)}</div>
                         <div>{formatCurrency(payment.amount)}</div>
                         <div>
-                          <div className="text-sm">
-                            {payment.invoices.length}{" "}
-                            {payment.invoices.length === 1
-                              ? "invoice"
-                              : "invoices"}
-                          </div>
+                          <div className="text-sm">{payment.invoices.length} {payment.invoices.length === 1 ? "invoice" : "invoices"}</div>
                         </div>
                       </div>
                     ))}
@@ -396,22 +334,16 @@ function RetailerContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-sm font-medium">Email</h3>
-                    <p className="text-muted-foreground">
-                      {retailer.email || "Not provided"}
-                    </p>
+                    <p className="text-muted-foreground">{retailer.email || "Not provided"}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium">Phone</h3>
-                    <p className="text-muted-foreground">
-                      {retailer.phone || "Not provided"}
-                    </p>
+                    <p className="text-muted-foreground">{retailer.phone || "Not provided"}</p>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Address</h3>
-                  <p className="text-muted-foreground whitespace-pre-line">
-                    {retailer.address || "Not provided"}
-                  </p>
+                  <p className="text-muted-foreground whitespace-pre-line">{retailer.address || "Not provided"}</p>
                 </div>
               </div>
             </CardContent>

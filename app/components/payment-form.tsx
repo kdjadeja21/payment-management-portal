@@ -23,9 +23,10 @@ import { formatCurrency } from "@/lib/utils"
 interface PaymentFormProps {
   retailer: Retailer
   totalDue: number
+  onSuccess?: () => void // Added onSuccess prop
 }
 
-export function PaymentForm({ retailer, totalDue }: PaymentFormProps) {
+export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState<number>(totalDue)
@@ -47,6 +48,7 @@ export function PaymentForm({ retailer, totalDue }: PaymentFormProps) {
       toast.success(`Payment of ${formatCurrency(amount)} applied successfully`)
       setOpen(false)
       router.refresh()
+      onSuccess?.() // Call onSuccess if provided
     } catch (error) {
       console.error("Error applying payment:", error)
       toast.error("Failed to apply payment. Please try again.")

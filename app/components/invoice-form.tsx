@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { CalendarIcon } from 'lucide-react'
-import { format } from "date-fns"
+import { format, isFuture } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -46,10 +46,13 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+  const [formErrors, setFormErrors] = useState<string[]>([])
+
+  const retailerName = invoice?.retailerName || (retailers.find(r => r.id === defaultRetailerId)?.name || "");
+
   const [formData, setFormData] = useState({
     retailerId: invoice?.retailerId || defaultRetailerId || "",
-    retailerName: invoice?.retailerName || "",
+    retailerName: retailerName,
     invoiceName: invoice?.invoiceName || `INV-${new Date().getTime()}`,
     amount: invoice?.amount || 0,
     invoiceDate: invoice?.invoiceDate || new Date(),
@@ -57,7 +60,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
     paidAmount: invoice?.paidAmount || 0,
     remainingAmount: invoice?.remainingAmount || 0,
   })
-  
+
   const handleRetailerChange = (value: string) => {
     const retailer = retailers.find(r => r.id === value)
     setFormData(prev => ({
@@ -66,11 +69,30 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
       retailerName: retailer?.name || "",
     }))
   }
-  
+
+  const validateForm = () => {
+    const errors: string[] = []
+    if (!formData.retailerId) errors.push("Retailer is required.")
+    if (!formData.invoiceName) errors.push("Invoice Name is required.")
+    if (formData.amount <= 0) errors.push("Amount must be greater than 0.")
+    if (!formData.invoiceDate) errors.push("Invoice Date is required.")
+    if (!formData.dueDate) errors.push("Due Date is required.")
+    if (formData.dueDate < formData.invoiceDate) errors.push("Due Date must be after Invoice Date.")
+    if (isFuture(formData.invoiceDate)) errors.push("Invoice Date cannot be in the future.")
+    if (isFuture(formData.dueDate)) errors.push("Due Date cannot be in the future.")
+    setFormErrors(errors)
+    return errors.length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
+    if (!validateForm()) {
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       if (invoice) {
         await updateInvoice(invoice.id, formData)
@@ -79,7 +101,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
         await addInvoice(formData)
         toast.success("Invoice added successfully")
       }
-      
+
       setOpen(false)
       router.refresh()
       onSuccess?.()
@@ -90,7 +112,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
       setIsSubmitting(false)
     }
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -163,6 +185,9 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                     mode="single"
                     selected={formData.invoiceDate}
                     onSelect={(date) => date && setFormData(prev => ({ ...prev, invoiceDate: date }))}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
                     initialFocus
                   />
                 </PopoverContent>
@@ -185,17 +210,27 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                     mode="single"
                     selected={formData.dueDate}
                     onSelect={(date) => date && setFormData(prev => ({ ...prev, dueDate: date }))}
+                    disabled={(date) =>
+                      date < formData.invoiceDate
+                    }
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
+            {formErrors.length > 0 && (
+              <div className="text-red-600">
+                {formErrors.map((error, index) => (
+                  <p key={index}>{error}</p>
+                ))}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !formData.retailerId}>
               {isSubmitting ? "adding..." : invoice ? "Update" : "Add"}
             </Button>
           </DialogFooter>

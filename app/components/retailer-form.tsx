@@ -30,6 +30,7 @@ export function RetailerForm({ retailer, trigger, onSuccess }: RetailerFormProps
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
   
   const initialFormData = {
     name: retailer?.name || "",
@@ -43,16 +44,32 @@ export function RetailerForm({ retailer, trigger, onSuccess }: RetailerFormProps
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    // Validate phone number length
+    if (name === "phone") {
+      if (value.length > 10) {
+        setPhoneError("Phone number cannot be more than 10 digits.");
+      } else if (value.length < 10) {
+        setPhoneError("Phone number cannot be less than 10 digits.");
+      } else {
+        setPhoneError(null);
+      }
+    }
   }
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     
+    if (phoneError) {
+      setIsSubmitting(false);
+      return;
+    }
+    
     try {
       if (retailer) {
         await updateRetailer(retailer.id, formData)
-        toast.success("Retailer updated successfully")
+        toast.success("Retailer updated successfully");
+        onSuccess?.();
       } else {
         await addRetailer(formData)
         toast.success("Retailer added successfully")
@@ -74,6 +91,7 @@ export function RetailerForm({ retailer, trigger, onSuccess }: RetailerFormProps
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setFormData(initialFormData)
+      setPhoneError(null); // Reset phone error on close
     }
     setOpen(open)
   }
@@ -119,7 +137,9 @@ export function RetailerForm({ retailer, trigger, onSuccess }: RetailerFormProps
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                aria-invalid={!!phoneError}
               />
+              {phoneError && <p className="text-red-600">{phoneError}</p>}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
@@ -136,7 +156,7 @@ export function RetailerForm({ retailer, trigger, onSuccess }: RetailerFormProps
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !!phoneError}>
               {isSubmitting ? "Saving..." : retailer ? "Update" : "Add"}
             </Button>
           </DialogFooter>
