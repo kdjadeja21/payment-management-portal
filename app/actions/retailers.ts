@@ -1,12 +1,12 @@
 'use server'
 
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
-  doc, 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  doc,
   serverTimestamp,
   Timestamp,
   query,
@@ -17,22 +17,27 @@ import { Retailer } from '@/types'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 
-export async function getRetailers(): Promise<Retailer[]> {
+export async function getRetailers(retailerId?: string): Promise<Retailer[]> {
   try {
     const { userId } = await auth()
     if (!userId) redirect('/sign-in')
 
-    const q = query(collection(db, 'retailers'), where('userId', '==', userId))
-    const querySnapshot = await getDocs(q)
+    let q = query(collection(db, 'retailers'), where('userId', '==', userId));
+    if (retailerId) {
+      q = query(q, where('id', '==', retailerId));
+    }
+
+    const querySnapshot = await getDocs(q);
+    console.log({ querySnapshot: querySnapshot.docs.map(doc => doc.data()) })
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       createdAt: new Date(doc.data().createdAt),
       updatedAt: new Date(doc.data().updatedAt),
-    } as Retailer))
+    } as Retailer));
   } catch (error) {
-    console.error('Error getting retailers:', error)
-    throw error
+    console.error('Error getting retailers:', error);
+    throw error;
   }
 }
 

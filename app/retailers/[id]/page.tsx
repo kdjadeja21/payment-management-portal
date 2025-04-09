@@ -1,7 +1,10 @@
-import { Suspense } from "react"
+"use client"
+
+import { Suspense, useEffect, useState } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, EditIcon, EyeIcon, Plus } from 'lucide-react'
+import { useParams } from 'next/navigation'
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,35 +19,52 @@ import { RetailerForm } from "@/app/components/retailer-form"
 import { InvoiceForm } from "@/app/components/invoice-form"
 import { PaymentForm } from "@/app/components/payment-form"
 import DashboardLayout from "@/app/components/dashboard-layout"
+import { Retailer, Invoice, Payment } from "@/types"
 
-interface RetailerPageProps {
-  params: {
-    id: string
-  }
-}
+function RetailerContent() {
+  // const params = useParams()
 
-async function RetailerContent({ params }: RetailerPageProps) {
-  const [retailers, invoices, payments] = await Promise.all([
-    getRetailers(),
-    getInvoices({ retailerId: params.id }),
-    getPayments({ retailerId: params.id })
-  ])
+  const { id } = useParams<{ id: string }>()
 
-  const retailer = retailers.find(r => r.id === params.id)
+  // console.log({ params })
+  const [retailers, setRetailers] = useState<Retailer[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [loading, setLoading] = useState(true)
 
-  if (!retailer) {
-    notFound()
-  }
+  useEffect(() => {
+    async function fetchData() {
+      const [retailersData, invoicesData, paymentsData] = await Promise.all([
+        getRetailers(),
+        getInvoices({ retailerId: id as string }),
+        getPayments({ retailerId: id as string })
+      ])
+      console.log({ retailersData })
+      setRetailers(retailersData)
+      setInvoices(invoicesData)
+      setPayments(paymentsData)
+      setLoading(false)
+
+      const foundRetailer = retailersData.find(r => r.id === id)
+
+      if (!foundRetailer) {
+        notFound();
+      }
+    }
+
+    fetchData()
+  }, [id]) // Ensure useEffect is called when params.id changes
+
+  console.log({ retailers })
+
+  const retailer = retailers[0]; // Assuming retailers is an array with a single retailer based on the passed param
 
   // Calculate stats
   const totalInvoiced = invoices.reduce((sum, invoice) => sum + invoice.amount, 0)
-
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0)
-
   const totalOutstanding = invoices
     .filter(invoice => invoice.status === 'due' || invoice.status === 'overdue')
     .reduce((sum, invoice) => sum + invoice.remainingAmount, 0)
-
   const totalOverdue = invoices
     .filter(invoice => invoice.status === 'overdue')
     .reduce((sum, invoice) => sum + invoice.remainingAmount, 0)
@@ -59,8 +79,9 @@ async function RetailerContent({ params }: RetailerPageProps) {
     (a, b) => b.paymentDate.getTime() - a.paymentDate.getTime()
   )
 
-  console.log({ payments })
-  console.log({ sortedPayments })
+  if (loading) {
+    return <RetailerSkeleton />
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -151,7 +172,7 @@ async function RetailerContent({ params }: RetailerPageProps) {
             }
             onSuccess={() => {
               // Refresh the page to get updated data
-              window.location.reload()
+              // window.location.reload()
             }}
           />
         </div>
@@ -211,7 +232,7 @@ async function RetailerContent({ params }: RetailerPageProps) {
                             retailers={retailers}
                             trigger={
                               <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
-                                 <EditIcon />Edit
+                                <EditIcon />Edit
                               </Button>
                             }
                           />
@@ -309,11 +330,11 @@ async function RetailerContent({ params }: RetailerPageProps) {
   )
 }
 
-export default function RetailerPage({ params }: RetailerPageProps) {
+export default function RetailerPage() {
   return (
     <DashboardLayout>
       <Suspense fallback={<RetailerSkeleton />}>
-        <RetailerContent params={params} />
+        <RetailerContent />
       </Suspense>
     </DashboardLayout>
   )

@@ -13,7 +13,8 @@ import {
   serverTimestamp,
   Timestamp,
   getDoc,
-  limit
+  limit,
+  FieldValue
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Invoice, DueCondition } from '@/types'
@@ -156,7 +157,7 @@ export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): 
     }
 
     // Convert dates to Firestore Timestamps
-    const dataToUpdate: Record<string, unknown> = { ...invoiceData }
+    const dataToUpdate: Partial<Record<string, FieldValue | Timestamp>> = {}
     if (invoiceData.invoiceDate) {
       dataToUpdate.invoiceDate = Timestamp.fromDate(invoiceData.invoiceDate)
     }

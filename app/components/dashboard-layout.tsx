@@ -128,7 +128,7 @@ export default function DashboardLayout({
                 href={item.href}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-2 transition-colors",
-                  pathname === item.href 
+                  pathname.startsWith(item.href) 
                     ? "bg-primary text-primary-foreground hover:bg-primary/90" 
                     : "hover:bg-accent hover:text-accent-foreground"
                 )}

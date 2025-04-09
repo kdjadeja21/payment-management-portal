@@ -1,9 +1,11 @@
-// @ts-nocheck
+"use client"
 
-import { Suspense } from "react"
+import { useEffect, useState } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Download, Printer } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { jsPDF } from "jspdf";
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,47 +15,104 @@ import { getRetailers } from "@/app/actions/retailers"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { StatusBadge } from "@/app/components/status-badge"
 import { InvoiceForm } from "@/app/components/invoice-form"
-import { markAsPaid } from "@/app/actions/invoices"
 import DashboardLayout from "@/app/components/dashboard-layout"
+import { Invoice, Retailer } from "@/types"
 
-// Define proper types for Next.js page props
-type PageProps = {
-  params: {
-    id: string;
-  };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
 
-async function getInvoiceDetails(id: string) {
-  try {
-    const [invoices, retailers] = await Promise.all([
-      getInvoices(),
-      getRetailers()
-    ])
+export default function InvoicePage() {
+  // TODO: Commented out print and download feature for now
+  const { id } = useParams<{ id: string }>() // Specify the type for useParams
+  const [invoice, setInvoice] = useState<Invoice>({} as Invoice) // Initialize with an empty object
+  const [retailer, setRetailer] = useState<Retailer>({} as Retailer) // Initialize with an empty object
+  const [retailers, setRetailers] = useState<Retailer[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
 
-    const invoice = invoices.find(i => i.id === id)
-    if (!invoice) {
-      notFound()
+  useEffect(() => {
+    const fetchInvoiceDetails = async () => {
+      try {
+        const [invoices, retailers] = await Promise.all([
+          getInvoices(),
+          getRetailers()
+        ])
+
+        const foundInvoice = invoices.find(i => i.id === id)
+        if (!foundInvoice) {
+          notFound()
+          return
+        }
+
+        const foundRetailer = retailers.find(r => r.id === foundInvoice.retailerId)
+        if (!foundRetailer) {
+          notFound()
+          return
+        }
+
+        setInvoice(foundInvoice)
+        setRetailer(foundRetailer)
+        setRetailers(retailers)
+      } catch (error) {
+        console.error("Error fetching invoice details:", error)
+        notFound()
+      } finally {
+        setLoading(false)
+      }
     }
 
-    const retailer = retailers.find(r => r.id === invoice.retailerId)
-    if (!retailer) {
-      notFound()
-    }
+    fetchInvoiceDetails()
+  }, [id])
 
-    return { invoice, retailer, retailers }
-  } catch (error) {
-    console.error("Error fetching invoice details:", error)
-    throw error
+  // const handlePrint = () => {
+  //   const printContent = document.getElementById('invoice-info');
+  //   if (printContent) {
+  //     const newWindow = window.open('', '_blank');
+  //     newWindow?.document.write(`
+  //       <html>
+  //         <head>
+  //           <title>Print Invoice</title>
+  //           <style>
+  //             /* Add any necessary styles for printing */
+  //             body { font-family: Arial, sans-serif; }
+  //             .card { margin: 20px; padding: 20px; border: 1px solid #ccc; }
+  //           </style>
+  //         </head>
+  //         <body>
+  //           ${printContent.innerHTML}
+  //         </body>
+  //       </html>
+  //     `);
+  //     newWindow?.document.close();
+  //     newWindow?.print();
+  //     // newWindow?.close();
+  //   }
+  // };
+
+  // const handleDownload = () => {
+  //   if (invoice) {
+  //     try {
+  //       const element = document.getElementById('invoice-content');
+  //       if (element) { // Check if element is not null
+  //         const pdf = new jsPDF();
+  //         pdf.html(element, {
+  //           callback: function (doc) {
+  //             doc.save(`invoice_${invoice.id}.pdf`);
+  //           }
+  //         });
+  //       } else {
+  //         console.error("Element not found for PDF generation");
+  //       }
+  //     } catch (error) {
+  //       console.error("Error generating PDF:", error);
+  //     }
+  //   }
+  // };
+
+  if (loading) {
+    return <InvoiceSkeleton />
   }
-}
 
-async function InvoiceContent({ id }: { id: string }) {
-  try {
-    const { invoice, retailer, retailers } = await getInvoiceDetails(id)
-
-    return (
-      <div className="flex flex-col gap-6">
+  return (
+    <DashboardLayout>
+      <div className="flex flex-col gap-6" id="invoice-content">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="icon">
@@ -70,14 +129,13 @@ async function InvoiceContent({ id }: { id: string }) {
               retailers={retailers}
               trigger={<Button variant="outline" size="sm">Edit Invoice</Button>}
             />
-            {invoice.status !== 'paid' && (
+            {invoice?.status !== 'paid' && (
               <form action={async () => {
-                'use server'
-                try {
-                  await markAsPaid(invoice.id)
-                } catch (error) {
-                  console.error("Error marking invoice as paid:", error)
-                }
+                // try {
+                //   await markAsPaid(invoice.id)
+                // } catch (error) {
+                //   console.error("Error marking invoice as paid:", error)
+                // }
               }}>
                 <Button type="submit" size="sm">Mark as Paid</Button>
               </form>
@@ -86,7 +144,7 @@ async function InvoiceContent({ id }: { id: string }) {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Card>
+          <Card id="invoice-info">
             <CardHeader>
               <CardTitle>Invoice Information</CardTitle>
               <CardDescription>
@@ -98,26 +156,26 @@ async function InvoiceContent({ id }: { id: string }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-sm font-medium">Invoice Name</h3>
-                    <p className="text-muted-foreground">{invoice.invoiceName}</p>
+                    <p className="text-muted-foreground">{invoice?.invoiceName}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium">Invoice Date</h3>
-                    <p className="text-muted-foreground">{formatDate(invoice.invoiceDate)}</p>
+                    <p className="text-muted-foreground">{formatDate(invoice?.invoiceDate)}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium">Due Date</h3>
-                    <p className="text-muted-foreground">{formatDate(invoice.dueDate)}</p>
+                    <p className="text-muted-foreground">{formatDate(invoice?.dueDate)}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium">Status</h3>
-                    <StatusBadge status={invoice.status} dueDays={invoice.dueDays} className="mt-1" />
+                    <StatusBadge status={invoice?.status} dueDays={invoice?.dueDays} className="mt-1" />
                   </div>
                   <div>
                     <h3 className="text-sm font-medium">Due Days</h3>
                     <p className="text-muted-foreground">
-                      {invoice.dueDays > 0
+                      {invoice?.dueDays > 0
                         ? `${invoice.dueDays} days remaining`
-                        : invoice.dueDays < 0
+                        : invoice?.dueDays < 0
                           ? `${Math.abs(invoice.dueDays)} days overdue`
                           : 'Due today'}
                     </p>
@@ -126,15 +184,15 @@ async function InvoiceContent({ id }: { id: string }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-sm font-medium">Amount</h3>
-                    <p className="text-xl font-bold">{formatCurrency(invoice.amount)}</p>
+                    <p className="text-xl font-bold">{formatCurrency(invoice?.amount)}</p>
                   </div>
-                  {invoice.paidAmount > 0 && (
+                  {invoice?.paidAmount > 0 && (
                     <div>
                       <h3 className="text-sm font-medium">Paid</h3>
                       <p className="text-muted-foreground">{formatCurrency(invoice.paidAmount)}</p>
                     </div>
                   )}
-                  {invoice.remainingAmount > 0 && (
+                  {invoice?.remainingAmount > 0 && (
                     <div>
                       <h3 className="text-sm font-medium">Remaining</h3>
                       <p className="text-muted-foreground">{formatCurrency(invoice.remainingAmount)}</p>
@@ -144,14 +202,14 @@ async function InvoiceContent({ id }: { id: string }) {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="outline" size="sm" className="gap-2">
+              {/* <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
                 <Printer className="h-4 w-4" />
                 Print
               </Button>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleDownload}>
                 <Download className="h-4 w-4" />
                 Download PDF
-              </Button>
+              </Button> */}
             </CardFooter>
           </Card>
 
@@ -167,34 +225,34 @@ async function InvoiceContent({ id }: { id: string }) {
                 <div>
                   <h3 className="text-sm font-medium">Name</h3>
                   <p className="text-muted-foreground">
-                    {retailer.name}
+                    {retailer?.name}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-sm font-medium">Email</h3>
                     <p className="text-muted-foreground">
-                      {retailer.email || "Not provided"}
+                      {retailer?.email || "Not provided"}
                     </p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium">Phone</h3>
                     <p className="text-muted-foreground">
-                      {retailer.phone || "Not provided"}
+                      {retailer?.phone || "Not provided"}
                     </p>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Address</h3>
                   <p className="text-muted-foreground whitespace-pre-line">
-                    {retailer.address || "Not provided"}
+                    {retailer?.address || "Not provided"}
                   </p>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href={`/retailers/${retailer.id}`}>
+                <Link href={`/retailers/${retailer?.id}`}>
                   View Retailer Details
                 </Link>
               </Button>
@@ -202,22 +260,9 @@ async function InvoiceContent({ id }: { id: string }) {
           </Card>
         </div>
       </div>
-    )
-  } catch (error) {
-    console.error("Error rendering invoice content:", error)
-    return <div>Something went wrong loading the invoice. Please try again.</div>
-  }
+    </DashboardLayout>
+  )
 }
-
-// export default async function InvoicePage({ params }: PageProps) {
-//   return (
-//     <DashboardLayout>
-//       <Suspense fallback={<InvoiceSkeleton />}>
-//         <InvoiceContent id={params.id} />
-//       </Suspense>
-//     </DashboardLayout>
-//   )
-// }
 
 function InvoiceSkeleton() {
   return (
@@ -263,19 +308,5 @@ function InvoiceSkeleton() {
         ))}
       </div>
     </div>
-  )
-}
-
-export default async function InvoicePage({
-  params
-}: {
-  params: { id: string }
-}) {
-  return (
-    <DashboardLayout>
-      <Suspense fallback={<InvoiceSkeleton />}>
-        <InvoiceContent id={params.id} />
-      </Suspense>
-    </DashboardLayout>
   )
 }

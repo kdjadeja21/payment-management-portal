@@ -80,7 +80,7 @@ function RetailersContent() {
   const totalPages = Math.ceil(retailersWithStats.length / perPage)
   const startIndex = (page - 1) * perPage
   const endIndex = startIndex + perPage
-  const currentRetailers = retailersWithStats.slice(startIndex, endIndex)
+  const currentRetailers = retailersWithStats.length === 0 ? [] : retailersWithStats.slice(startIndex, endIndex)
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams)
@@ -94,6 +94,8 @@ function RetailersContent() {
     params.set('page', '1') // Reset to first page when changing items per page
     router.push(`/retailers?${params.toString()}`)
   }
+
+  
 
   if (loading) {
     return <RetailersSkeleton />
@@ -176,52 +178,54 @@ function RetailersContent() {
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Show</span>
-              <Select 
-                value={perPage.toString()} 
-                onValueChange={handlePerPageChange}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue placeholder="Items" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">per page</span>
+          {retailersWithStats.length > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Show</span>
+                <Select 
+                  value={perPage.toString()} 
+                  onValueChange={handlePerPageChange}
+                >
+                  <SelectTrigger className="w-[80px]">
+                    <SelectValue placeholder="Items" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">per page</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => handlePageChange(page - 1)}
+                  className="gap-1 cursor-pointer"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === totalPages}
+                  onClick={() => handlePageChange(page + 1)}
+                  className="gap-1 cursor-pointer"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => handlePageChange(page - 1)}
-                className="gap-1 cursor-pointer"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === totalPages}
-                onClick={() => handlePageChange(page + 1)}
-                className="gap-1 cursor-pointer"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          )}
         </>
       )}
     </div>

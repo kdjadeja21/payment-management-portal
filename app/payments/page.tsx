@@ -186,10 +186,14 @@ function PaymentsContent() {
   )
 }
 
+import { Suspense } from 'react';
+
 export default function PaymentsPage() {
   return (
     <DashboardLayout>
-      <PaymentsContent />
+      <Suspense fallback={<PaymentsSkeleton />}>
+        <PaymentsContent />
+      </Suspense>
     </DashboardLayout>
   )
 }
