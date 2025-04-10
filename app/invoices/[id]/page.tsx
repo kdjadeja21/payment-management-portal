@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, Suspense } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Trash2 } from 'lucide-react'
@@ -20,8 +20,7 @@ import { Invoice, Retailer } from "@/types"
 import { deleteInvoice } from "@/app/actions/invoices"
 import { ConfirmationDialog } from "@/app/components/confirmation-dialog"
 
-
-export default function InvoicePage() {
+export function InvoiceContent() {
   const { id } = useParams<{ id: string }>() // Specify the type for useParams
   const [invoice, setInvoice] = useState<Invoice>({} as Invoice) // Initialize with an empty object
   const [retailer, setRetailer] = useState<Retailer>({} as Retailer) // Initialize with an empty object
@@ -29,46 +28,46 @@ export default function InvoicePage() {
   const [loading, setLoading] = useState<boolean>(true)
   const router = useRouter()
 
-  useEffect(() => {
-    const fetchInvoiceDetails = async () => {
-      try {
-        const [invoices, retailers] = await Promise.all([
-          getInvoices(),
-          getRetailers()
-        ])
+  const fetchInvoiceDetails = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [invoices, retailers] = await Promise.all([
+        getInvoices(),
+        getRetailers()
+      ])
 
-        const foundInvoice = invoices.find(i => i.id === id)
-        if (!foundInvoice) {
-          notFound()
-          return
-        }
-
-        const foundRetailer = retailers.find(r => r.id === foundInvoice.retailerId)
-        if (!foundRetailer) {
-          notFound()
-          return
-        }
-
-        setInvoice(foundInvoice)
-        setRetailer(foundRetailer)
-        setRetailers(retailers)
-      } catch (error) {
-        console.error("Error fetching invoice details:", error)
+      const foundInvoice = invoices.find(i => i.id === id)
+      if (!foundInvoice) {
         notFound()
-      } finally {
-        setLoading(false)
+        return
       }
-    }
 
-    fetchInvoiceDetails()
+      const foundRetailer = retailers.find(r => r.id === foundInvoice.retailerId)
+      if (!foundRetailer) {
+        notFound()
+        return
+      }
+
+      setInvoice(foundInvoice)
+      setRetailer(foundRetailer)
+      setRetailers(retailers)
+    } catch (error) {
+      console.error("Error fetching invoice details:", error)
+      notFound()
+    } finally {
+      setLoading(false)
+    }
   }, [id])
+
+  useEffect(() => {
+    fetchInvoiceDetails()
+  }, [fetchInvoiceDetails])
 
   if (loading) {
     return <InvoiceSkeleton />
   }
 
   return (
-    <DashboardLayout>
       <div className="flex flex-col gap-6" id="invoice-content">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -85,6 +84,10 @@ export default function InvoicePage() {
               invoice={invoice}
               retailers={retailers}
               trigger={<Button className="cursor-pointer" variant="outline" size="sm">Edit Invoice</Button>}
+              onSuccess={async () => {
+                await fetchInvoiceDetails(); // Refetch data after editing the invoice
+                // router.push(`/invoices/${id}`);
+              }}
             />
             <ConfirmationDialog
                 title="Delete Invoice"
@@ -214,8 +217,17 @@ export default function InvoicePage() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
   )
+}
+
+export default function InvoicePage() {
+  return (
+    <DashboardLayout>
+      <Suspense fallback={<InvoiceSkeleton />}>
+        <InvoiceContent />
+      </Suspense>
+    </DashboardLayout>
+  );
 }
 
 function InvoiceSkeleton() {
