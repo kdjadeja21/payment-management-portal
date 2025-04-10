@@ -80,18 +80,40 @@ A modern web application built with Next.js for managing payments, subscriptions
 ```
 ptp/
 ├── app/                    # Next.js app directory
-│   ├── (auth)/            # Authentication routes
-│   ├── dashboard/         # Dashboard pages
-│   ├── invoices/          # Invoice management
-│   ├── payments/          # Payment processing
-│   ├── reports/           # Financial reports
-│   ├── retailers/         # Retailer management
-│   ├── settings/          # User settings
-│   └── subscription/      # Subscription management
-├── components/            # Reusable UI components
+│   ├── (auth)/            # Authentication routes and protected pages
+│   ├── (modules)/         # Core application modules
+│   │   ├── payment-management/  # Payment processing and management
+│   │   ├── order-management/    # Order processing and tracking
+│   │   └── inventory-management/ # Inventory tracking and management
+│   ├── actions/           # Server actions for data mutations
+│   ├── activity/          # Activity tracking and audit logs
+│   ├── components/        # App-specific components and layouts
+│   ├── dashboard/         # Dashboard pages and analytics
+│   ├── settings/          # User settings and preferences
+│   ├── signin/           # Sign in page and authentication
+│   ├── signup/           # Sign up page and user registration
+│   ├── subscription/      # Subscription management and billing
+│   ├── globals.css       # Global styles and Tailwind imports
+│   ├── layout.tsx        # Root layout with providers
+│   ├── not-found.tsx     # 404 error page
+│   └── page.tsx          # Home page and landing
+├── components/            # Shared UI components and design system
+│   ├── ui/               # Shadcn UI components
+│   ├── theme-provider.tsx # Theme configuration
+│   └── navbar.tsx        # Navigation component
 ├── lib/                   # Utility functions and configurations
-├── public/                # Static assets
-└── types/                 # TypeScript type definitions
+│   ├── utils.ts          # Helper functions
+│   ├── auth.ts           # Authentication utilities
+│   └── firebase.ts       # Firebase configuration
+├── public/                # Static assets and media files
+├── types/                 # TypeScript type definitions
+├── .github/              # GitHub workflows and configurations
+├── middleware.ts         # Next.js middleware for auth and routing
+├── next.config.ts        # Next.js configuration
+├── tailwind.config.ts    # Tailwind CSS configuration
+├── components.json       # Shadcn components configuration
+├── postcss.config.mjs    # PostCSS configuration
+└── eslint.config.mjs     # ESLint configuration
 ```
 
 ## 🔒 Security
