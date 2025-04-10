@@ -1,13 +1,22 @@
 "use client"
 
+// Add type declaration for MSStream
+declare global {
+  interface Window {
+    MSStream?: any;
+  }
+}
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { CalendarIcon } from 'lucide-react'
 import { format, isFuture } from "date-fns"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import {
   Dialog,
   DialogContent,
@@ -33,6 +42,9 @@ import {
 } from "@/components/ui/select"
 import { Retailer, Invoice } from "@/types"
 import { addInvoice, updateInvoice } from "@/app/actions/invoices"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
 
 interface InvoiceFormProps {
   invoice?: Invoice
@@ -46,66 +58,53 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formErrors, setFormErrors] = useState<string[]>([])
 
   const retailerName = invoice?.retailerName || (retailers.find(r => r.id === defaultRetailerId)?.name || "");
 
-  const initialFormData = {
-    retailerId: invoice?.retailerId || defaultRetailerId || "",
-    retailerName: retailerName,
-    invoiceName: invoice?.invoiceName || `INV-${new Date().getTime()}`,
-    amount: invoice?.amount || 0,
-    invoiceDate: invoice?.invoiceDate || new Date(),
-    dueDate: invoice?.dueDate || new Date(),
-    paidAmount: invoice?.paidAmount || 0,
-    remainingAmount: invoice?.remainingAmount || 0,
-  };
+  const formSchema = z.object({
+    retailerId: z.string().min(1, "Retailer is required"),
+    retailerName: z.string(),
+    invoiceName: z.string().min(1, "Invoice Name is required"),
+    amount: z.number().min(0.01, "Amount must be greater than 0"),
+    invoiceDate: z.date(),
+    dueDate: z.date(),
+    paidAmount: z.number(),
+    remainingAmount: z.number(),
+  })
 
-  const [formData, setFormData] = useState(initialFormData);
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      retailerId: invoice?.retailerId || defaultRetailerId || "",
+      retailerName: retailerName,
+      invoiceName: invoice?.invoiceName || `INV-${new Date().getTime()}`,
+      amount: invoice?.amount || 0,
+      invoiceDate: invoice?.invoiceDate || new Date(),
+      dueDate: invoice?.dueDate || new Date(),
+      paidAmount: invoice?.paidAmount || 0,
+      remainingAmount: invoice?.remainingAmount || 0,
+    }
+  })
 
   const handleRetailerChange = (value: string) => {
     const retailer = retailers.find(r => r.id === value)
-    setFormData(prev => ({
-      ...prev,
-      retailerId: value,
-      retailerName: retailer?.name || "",
-    }))
+    form.setValue("retailerId", value)
+    form.setValue("retailerName", retailer?.name || "")
   }
 
-  const validateForm = () => {
-    const errors: string[] = []
-    if (!formData.retailerId) errors.push("Retailer is required.")
-    if (!formData.invoiceName) errors.push("Invoice Name is required.")
-    if (formData.amount <= 0) errors.push("Amount must be greater than 0.")
-    if (!formData.invoiceDate) errors.push("Invoice Date is required.")
-    if (!formData.dueDate) errors.push("Due Date is required.")
-    if (formData.dueDate < formData.invoiceDate) errors.push("Due Date must be after Invoice Date.")
-    if (isFuture(formData.invoiceDate)) errors.push("Invoice Date cannot be in the future.")
-    if (isFuture(formData.dueDate)) errors.push("Due Date cannot be in the future.")
-    setFormErrors(errors)
-    return errors.length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true)
-
-    if (!validateForm()) {
-      setIsSubmitting(false)
-      return
-    }
-
     try {
       if (invoice) {
-        await updateInvoice(invoice.id, formData)
+        await updateInvoice(invoice.id, values)
         toast.success("Invoice updated successfully")
       } else {
-        await addInvoice(formData)
+        await addInvoice(values)
         toast.success("Invoice added successfully")
       }
 
       setOpen(false)
-      setFormData(initialFormData); // Reset form data after submit
+      form.reset()
       router.refresh()
       onSuccess?.()
     } catch (error) {
@@ -117,9 +116,11 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
   }
 
   const handleCancel = () => {
-    setOpen(false);
-    setFormData(initialFormData); // Reset form data on cancel
+    setOpen(false)
+    form.reset()
   }
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -133,116 +134,206 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
               : "Enter the invoice details to add it to your system."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="retailer">Retailer</Label>
-              <Select
-                value={formData.retailerId}
-                onValueChange={handleRetailerChange}
-              >
-                <SelectTrigger id="retailer">
-                  <SelectValue placeholder="Select retailer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {retailers.map((retailer) => (
-                    <SelectItem key={retailer.id} value={retailer.id}>
-                      {retailer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="invoiceName">Invoice Name</Label>
-              <Input
-                id="invoiceName"
-                value={formData.invoiceName}
-                onChange={(e) => setFormData(prev => ({ ...prev, invoiceName: e.target.value }))}
-                placeholder="Enter invoice name"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="amount">Amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Invoice Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="retailerId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Retailer</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={handleRetailerChange}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.invoiceDate ? format(formData.invoiceDate, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.invoiceDate}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, invoiceDate: date }))}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid gap-2">
-              <Label>Due Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dueDate ? format(formData.dueDate, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.dueDate}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, dueDate: date }))}
-                    disabled={(date) =>
-                      date < formData.invoiceDate
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            {formErrors.length > 0 && (
-              <div className="text-red-600">
-                {formErrors.map((error, index) => (
-                  <p key={index}>{error}</p>
-                ))}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !formData.retailerId}>
-              {isSubmitting ? "adding..." : invoice ? "Update" : "Add"}
-            </Button>
-          </DialogFooter>
-        </form>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select retailer" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {retailers.map((retailer) => (
+                        <SelectItem key={retailer.id} value={retailer.id}>
+                          {retailer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="invoiceName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Invoice Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter invoice name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="0.00"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="invoiceDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Invoice Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, "PPP") : "Select date"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      {isIOS ? (
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                          onChange={(e) => {
+                            const selectedDate = new Date(e.target.value);
+                            if (selectedDate > new Date()) {
+                              alert("Please select a valid date. It cannot be in the future.");
+                              return;
+                            }
+                            if (selectedDate < new Date("1900-01-01")) {
+                              alert("Please select a valid date. It cannot be earlier than January 1, 1900.");
+                              return;
+                            }
+                            if (selectedDate < form.getValues("invoiceDate")) {
+                              alert("Please select a valid date. It cannot be earlier than the invoice date.");
+                              return;
+                            }
+                            field.onChange(selectedDate);
+                          }}
+                          autoComplete="off"
+                          required
+                          aria-invalid={!!form.formState.errors.invoiceDate}
+                        />
+                      ) : (
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Due Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, "PPP") : "Select date"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      {isIOS ? (
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                          onChange={(e) => {
+                            const selectedDate = new Date(e.target.value);
+                            if (selectedDate > new Date()) {
+                              alert("The selected date cannot be in the future.");
+                              return;
+                            } 
+                            if (selectedDate < new Date("1900-01-01")) {
+                              alert("The selected date cannot be before January 1, 1900.");
+                              return;
+                            }
+                            if (selectedDate < form.getValues("invoiceDate")) {
+                              alert("The due date cannot be earlier than the invoice date.");
+                              return;
+                            }
+                            field.onChange(selectedDate);
+                          }}
+                          autoComplete="off"
+                          required
+                          aria-invalid={!!form.formState.errors.dueDate}
+                        />
+                      ) : (
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || 
+                            date < new Date("1900-01-01") || 
+                            date < form.getValues("invoiceDate")
+                          }
+                          initialFocus
+                        />
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : invoice ? "Update" : "Add"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )
