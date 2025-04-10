@@ -1,3 +1,4 @@
+import DashboardLayout from "@/app/components/dashboard-layout"
 import { ReactNode } from "react"
 
 interface OrderManagementLayoutProps {
@@ -6,10 +7,12 @@ interface OrderManagementLayoutProps {
 
 export default function OrderManagementLayout({ children }: OrderManagementLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        {children}
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          {children}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 } 

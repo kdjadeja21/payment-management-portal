@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Order Management",
+  title: "Udyog360 | Order Management",
   description: "Manage orders, fulfillment, and customer requests",
 }
 

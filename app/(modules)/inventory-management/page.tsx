@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Inventory Management",
+  title: "Udyog360 | Inventory Management",
   description: "Manage inventory, stock levels, and products",
 }
 
