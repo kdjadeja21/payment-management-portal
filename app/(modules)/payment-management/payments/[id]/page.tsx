@@ -51,7 +51,7 @@ function PaymentDetailsContent() {
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-4">
-          <Link className="cursor-pointer" href="/payments">
+          <Link className="cursor-pointer" href="/payment-management/payments">
             <Button className="cursor-pointer" variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Payments
@@ -77,7 +77,7 @@ function PaymentDetailsContent() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        <Link href="/payments">
+        <Link href="/payment-management/payments">
           <Button variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Payments
@@ -100,7 +100,7 @@ function PaymentDetailsContent() {
                 <div>
                   <p className="text-sm text-gray-600">Retailer Name</p>
                   <Link
-                    href={`/retailers/${payment.retailerId}`}
+                    href={`/payment-management/retailers/${payment.retailerId}`}
                     className="text-blue-600 hover:underline font-bold"
                     aria-label={`View details for retailer ${payment.retailerName}`}
                   >
@@ -134,7 +134,7 @@ function PaymentDetailsContent() {
                     >
                       <div>
                         <Link
-                          href={`/invoices/${invoice.id}`}
+                          href={`/payment-management/invoices/${invoice.id}`}
                           className="text-blue-600 hover:underline font-bold"
                           aria-label={`View details for invoice ${invoice.invoiceName}`}
                         >

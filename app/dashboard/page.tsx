@@ -87,7 +87,7 @@ async function DashboardContent() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/invoices">
+                <Link href="/payment-management/invoices">
                   View All Invoices
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -119,7 +119,7 @@ async function DashboardContent() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/retailers">
+                <Link href="/payment-management/retailers">
                   View All Retailers
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

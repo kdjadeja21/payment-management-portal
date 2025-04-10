@@ -85,14 +85,14 @@ function RetailersContent() {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams)
     params.set('page', newPage.toString())
-    router.push(`/retailers?${params.toString()}`)
+    router.push(`/payment-management/retailers?${params.toString()}`)
   }
 
   const handlePerPageChange = (value: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('perPage', value)
     params.set('page', '1') // Reset to first page when changing items per page
-    router.push(`/retailers?${params.toString()}`)
+    router.push(`/payment-management/retailers?${params.toString()}`)
   }
 
   if (loading) {
@@ -184,7 +184,7 @@ function RetailersContent() {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                   <Button asChild variant="secondary" size="sm" className="cursor-pointer">
-                    <Link href={`/retailers/${retailer.id}`}>View Details</Link>
+                    <Link href={`/payment-management/retailers/${retailer.id}`}>View Details</Link>
                   </Button>
                   <RetailerForm
                     retailer={retailer}
