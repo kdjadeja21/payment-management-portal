@@ -134,57 +134,6 @@ export async function addInvoice(invoiceData: Omit<Invoice, 'id' | 'status' | 'd
   }
 }
 
-// export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): Promise<void> {
-//   try {
-//     const { userId } = await auth()
-//     if (!userId) redirect('/sign-in')
-
-//     const invoiceRef = doc(db, "invoices", id)
-
-//     // Verify invoice belongs to user
-//     const invoiceSnap = await getDoc(invoiceRef)
-//     if (!invoiceSnap.exists() || invoiceSnap.data().userId !== userId) {
-//       throw new Error('Invoice not found or unauthorized')
-//     }
-
-//     // If dueDate is being updated, recalculate status
-//     const currentData = invoiceSnap.data()
-//     if (invoiceData.dueDate && invoiceData.dueDate !== currentData.dueDate) {
-//       const isPaid = currentData?.paidAmount === currentData?.amount
-
-//       const dueDays = calculateDueDays(invoiceData.dueDate)
-//       invoiceData.status = getStatusFromDueDays(dueDays, isPaid)
-//     }
-
-//     // Convert dates to Firestore Timestamps
-//     const dataToUpdate: Partial<Record<string, FieldValue | Timestamp>> = {}
-
-//     for (const [key, value] of Object.entries(invoiceData)) {
-//       if (value instanceof Date) {
-//         dataToUpdate[key] = Timestamp.fromDate(value)
-//       } else {
-//         dataToUpdate[key] = value
-//       }
-//     }
-    
-//     if (invoiceData.invoiceDate) {
-//       dataToUpdate.invoiceDate = Timestamp.fromDate(invoiceData.invoiceDate)
-//     }
-//     if (invoiceData.dueDate) {
-//       dataToUpdate.dueDate = Timestamp.fromDate(invoiceData.dueDate)
-//     }
-
-//     dataToUpdate.updatedAt = serverTimestamp()
-
-//     console.log({ dataToUpdate })
-
-//     await updateDoc(invoiceRef, dataToUpdate)
-//   } catch (error) {
-//     console.error('Error updating invoice:', error)
-//     throw error
-//   }
-// }
-
 export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): Promise<void> {
   try {
     const { userId } = await auth()

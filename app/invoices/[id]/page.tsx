@@ -20,7 +20,7 @@ import { Invoice, Retailer } from "@/types"
 import { deleteInvoice } from "@/app/actions/invoices"
 import { ConfirmationDialog } from "@/app/components/confirmation-dialog"
 
-export function InvoiceContent() {
+function InvoiceContent() {
   const { id } = useParams<{ id: string }>() // Specify the type for useParams
   const [invoice, setInvoice] = useState<Invoice>({} as Invoice) // Initialize with an empty object
   const [retailer, setRetailer] = useState<Retailer>({} as Retailer) // Initialize with an empty object
