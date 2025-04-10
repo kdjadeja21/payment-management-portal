@@ -188,7 +188,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                     {formData.invoiceDate ? format(formData.invoiceDate, "PPP") : "Select date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={10}>
                   <Calendar
                     mode="single"
                     selected={formData.invoiceDate}
@@ -213,7 +213,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                     {formData.dueDate ? format(formData.dueDate, "PPP") : "Select date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={10}>
                   <Calendar
                     mode="single"
                     selected={formData.dueDate}
