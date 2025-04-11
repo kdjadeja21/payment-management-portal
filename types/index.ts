@@ -34,6 +34,7 @@ export interface Payment {
     invoiceId: string
     amountApplied: number
   }[]
+  invoiceIds: string[] // New field added
   createdAt: Date
 }
 
@@ -59,4 +60,15 @@ export interface InvoiceFilters {
   startDate?: Date
   endDate?: Date
   dueCondition?: DueCondition
+}
+
+export interface RetailerWithOutstanding extends Retailer {
+  totalOutstanding: number
+  invoiceCount: number
+}
+
+export interface PaymentData {
+  invoices: Invoice[]
+  retailers: Retailer[]
+  isLoading: boolean
 }

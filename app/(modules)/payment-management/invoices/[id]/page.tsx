@@ -72,7 +72,7 @@ function InvoiceContent() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="icon">
-              <Link href="/invoices">
+              <Link href="/payment-management/invoices">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="sr-only">Back</span>
               </Link>
@@ -102,7 +102,7 @@ function InvoiceContent() {
                   </Button>
                 }
                 onConfirm={() => deleteInvoice(invoice.id)}
-                onSuccess={() => router.push('/invoices')}
+                onSuccess={() => router.push('/payment-management/invoices')}
               />
           </div>
         </div>
@@ -209,7 +209,7 @@ function InvoiceContent() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href={`/retailers/${retailer?.id}`}>
+                <Link href={`/payment-management/retailers/${retailer?.id}`}>
                   View Retailer Details
                 </Link>
               </Button>

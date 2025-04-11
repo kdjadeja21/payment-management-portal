@@ -118,7 +118,7 @@ function RetailerContent() {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="icon">
-            <Link href="/retailers">
+            <Link href="/payment-management/retailers">
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Back</span>
             </Link>
@@ -154,7 +154,7 @@ function RetailerContent() {
               </Button>
             }
             onConfirm={() => deleteRetailer(retailer.id)}
-            onSuccess={() => router.push("/retailers")}
+            onSuccess={() => router.push("/payment-management/retailers")}
           />
           {totalOutstanding > 0 && (
             <PaymentForm retailer={retailer} totalDue={totalOutstanding} onSuccess={handlePaymentSuccess} />
@@ -271,7 +271,7 @@ function RetailerContent() {
                             }
                           />
                           <Button asChild variant="outline" size="sm" className="flex items-center cursor-pointer">
-                            <Link href={`/invoices/${invoice.id}`}>
+                            <Link href={`/payment-management/invoices/${invoice.id}`}>
                               <EyeIcon />
                               View
                             </Link>
@@ -312,7 +312,7 @@ function RetailerContent() {
                           <div className="text-sm">{payment.invoices.length} {payment.invoices.length === 1 ? "invoice" : "invoices"}</div>
                         </div>
                         <div className="flex justify-end">
-                          <Link className="cursor-pointer" href={`/payments/${payment.id}`}>
+                          <Link className="cursor-pointer" href={`/payment-management/payments/${payment.id}`}>
                             <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
                               View Details
                             </Button>

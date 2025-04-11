@@ -83,6 +83,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
         invoiceId: invoice.invoiceId,
         amountApplied: invoice.amountApplied
       })),
+      invoiceIds: paymentData.invoices.map(invoice => invoice.invoiceId), // Added invoiceIds field
       createdAt: serverTimestamp(),
     })
 
@@ -96,6 +97,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
         invoiceId: invoice.invoiceId,
         amountApplied: invoice.amountApplied
       })),
+      invoiceIds: paymentData.invoices.map(invoice => invoice.invoiceId), // Added invoiceIds
       createdAt: new Date(),
     }
 
@@ -201,6 +203,7 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
 
     let remainingPayment = amount
     const paymentInvoices: { invoiceId: string; amountApplied: number }[] = []
+    const invoiceIds: string[] = [] // New field to store just invoice IDs
 
     // Apply payment to each invoice, starting with oldest
     for (const doc of snapshot.docs) {
@@ -226,6 +229,7 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
         invoiceId: doc.id,
         amountApplied: paymentToApply
       })
+      invoiceIds.push(doc.id) // Store the invoice ID
 
       remainingPayment -= paymentToApply
     }
@@ -240,7 +244,8 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
       retailerName,
       amount,
       paymentDate: new Date(),
-      invoices: paymentInvoices
+      invoices: paymentInvoices,
+      invoiceIds // Include the new field in the payment record
     })
 
   } catch (error) {
@@ -273,6 +278,7 @@ export async function getPaymentById(paymentId: string): Promise<Payment> {
       amount: paymentData.amount,
       paymentDate: paymentData.paymentDate?.toDate() || new Date(),
       invoices: paymentData.invoices || [],
+      invoiceIds: paymentData.invoiceIds || [], // Added invoiceIds
       createdAt: paymentData.createdAt?.toDate() || new Date(),
     }
   } catch (error) {

@@ -30,23 +30,24 @@ function RetailersContent() {
   const page = parseInt(searchParams.get('page') || '1')
   const perPage = parseInt(searchParams.get('perPage') || '5')
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [retailersData, invoicesData, paymentsData] = await Promise.all([
-          getRetailers(),
-          getInvoices(),
-          getPayments()
-        ])
-        setRetailers(retailersData)
-        setInvoices(invoicesData)
-        setPayments(paymentsData)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = async () => {
+    try {
+      const [retailersData, invoicesData, paymentsData] = await Promise.all([
+        getRetailers(),
+        getInvoices(),
+        getPayments()
+      ])
+      setRetailers(retailersData)
+      setInvoices(invoicesData)
+      setPayments(paymentsData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchData()
   }, [])
 
@@ -85,14 +86,14 @@ function RetailersContent() {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams)
     params.set('page', newPage.toString())
-    router.push(`/retailers?${params.toString()}`)
+    router.push(`/payment-management/retailers?${params.toString()}`)
   }
 
   const handlePerPageChange = (value: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('perPage', value)
     params.set('page', '1') // Reset to first page when changing items per page
-    router.push(`/retailers?${params.toString()}`)
+    router.push(`/payment-management/retailers?${params.toString()}`)
   }
 
   if (loading) {
@@ -119,26 +120,7 @@ function RetailersContent() {
               Add Retailer
             </Button>
           }
-          onSuccess={() => {
-            // Refresh the data
-            const fetchData = async () => {
-              try {
-                const [retailersData, invoicesData, paymentsData] = await Promise.all([
-                  getRetailers(),
-                  getInvoices(),
-                  getPayments()
-                ])
-                setRetailers(retailersData)
-                setInvoices(invoicesData)
-                setPayments(paymentsData)
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'An error occurred')
-              } finally {
-                setLoading(false)
-              }
-            }
-            fetchData()
-          }}
+          onSuccess={fetchData} // Use the reusable fetchData function
         />
       </div>
       
@@ -184,11 +166,12 @@ function RetailersContent() {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                   <Button asChild variant="secondary" size="sm" className="cursor-pointer">
-                    <Link href={`/retailers/${retailer.id}`}>View Details</Link>
+                    <Link href={`/payment-management/retailers/${retailer.id}`}>View Details</Link>
                   </Button>
                   <RetailerForm
                     retailer={retailer}
                     trigger={<Button className="cursor-pointer" variant="outline" size="sm">Edit</Button>}
+                    onSuccess={fetchData} // Use the reusable fetchData function
                   />
                 </CardFooter>
               </Card>

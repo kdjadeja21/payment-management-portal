@@ -91,14 +91,14 @@ function InvoiceContent() {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams)
     params.set('page', newPage.toString())
-    router.push(`/invoices?${params.toString()}`)
+    router.push(`/payment-management/invoices?${params.toString()}`)
   }
 
   const handlePerPageChange = (value: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('perPage', value)
     params.set('page', '1') // Reset to first page when changing items per page
-    router.push(`/invoices?${params.toString()}`)
+    router.push(`/payment-management/invoices?${params.toString()}`)
   }
 
   if (loading) {
@@ -272,7 +272,7 @@ function InvoiceContent() {
                   <TableRow
                     key={invoice.id}
                     className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => router.push(`/invoices/${invoice.id}`)}
+                    onClick={() => router.push(`/payment-management/invoices/${invoice.id}`)}
                   >
                     <TableCell className="text-gray-700">{invoice.retailerName}</TableCell>
                     <TableCell className="text-gray-700">{formatCurrency(invoice.amount)}</TableCell>

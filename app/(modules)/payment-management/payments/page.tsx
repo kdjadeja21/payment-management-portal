@@ -53,14 +53,14 @@ function PaymentsContent() {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams)
     params.set('page', newPage.toString())
-    router.push(`/payments?${params.toString()}`)
+    router.push(`/payment-management/payments?${params.toString()}`)
   }
 
   const handlePerPageChange = (value: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('perPage', value)
     params.set('page', '1') // Reset to first page when changing items per page
-    router.push(`/payments?${params.toString()}`)
+    router.push(`/payment-management/payments?${params.toString()}`)
   }
 
   if (loading) {
@@ -125,7 +125,7 @@ function PaymentsContent() {
                     </div>
                     <div>
                       <Link
-                        href={`/payments/${payment.id}`}
+                        href={`/payment-management/payments/${payment.id}`}
                         className="cursor-pointer"
                       >
                         <Button variant="outline" size="sm" className="flex items-center cursor-pointer">

@@ -38,8 +38,7 @@ export async function getInvoices(filters?: {
   let q = query(
     invoicesRef,
     where("userId", "==", userId),
-    orderBy("createdAt", "desc"),
-    limit(100)
+    orderBy("createdAt", "desc")
   )
 
   // Add retailer filter if provided
@@ -147,7 +146,7 @@ export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): 
     }
 
     const currentData = invoiceSnap.data()
-    
+
     // Recalculate status if dueDate changes
     if (invoiceData.dueDate && invoiceData.dueDate !== currentData.dueDate) {
       const isPaid = currentData.paidAmount === currentData.amount
@@ -188,17 +187,17 @@ export async function deleteInvoice(invoiceId: string): Promise<void> {
       throw new Error("Invoice not found")
     }
 
-    // Check if invoice has any associated payments
+    // Check if any payment is connected with this invoice
     const paymentsRef = collection(db, "payments")
     const q = query(
       paymentsRef,
       where("userId", "==", userId),
-      where("invoices", "array-contains", { invoiceId })
+      where("invoiceIds", "array-contains", invoiceId)
     )
     const paymentSnapshot = await getDocs(q)
 
-    if (!paymentSnapshot.empty) {
-      throw new Error("Cannot delete invoice with associated payments. Please delete all related payments first.")
+    if (paymentSnapshot.docs.length > 0) {
+      throw new Error("Cannot delete invoice that is connected with payments. Please delete all related payments first.");
     }
 
     // If no payments found, proceed with deletion

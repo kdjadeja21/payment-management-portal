@@ -68,7 +68,7 @@ export function SearchDialog() {
           type: 'retailer',
           title: retailer.name,
           subtitle: `Retailer`,
-          href: `/retailers/${retailer.id}`
+          href: `/payment-management/retailers/${retailer.id}`
         })
       }
     })
@@ -83,7 +83,7 @@ export function SearchDialog() {
           type: 'invoice',
           title: `${invoice.retailerName} - ${invoice.invoiceName}`,
           subtitle: `${formatCurrency(invoice.amount)} • ${formatDate(invoice.invoiceDate)}`,
-          href: `/invoices/${invoice.id}`
+          href: `/payment-management/invoices/${invoice.id}`
         })
       }
     })
