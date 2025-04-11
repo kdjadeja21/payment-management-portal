@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { SearchDialog } from "@/app/components/search"
+import { NotificationDropdown } from "@/components/NotificationDropdown"
 
 interface NavItem {
   title: string
@@ -117,7 +118,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6 w-full">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -125,7 +126,7 @@ export default function DashboardLayout({
               <span className="sr-only">Toggle navigation menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="flex flex-col p-3 sm:max-w-lg"> {/* Adjusted width for web view */}
+          <SheetContent side="left" className="flex flex-col p-3 sm:max-w-lg">
             <nav className="grid gap-2 text-lg font-medium">
               <Link
                 href="/"
@@ -133,9 +134,9 @@ export default function DashboardLayout({
                 onClick={() => setOpen(false)}
               >
                 <CreditCard className="h-6 w-6" />
-                <span className="font-bold">Payment Portal</span>
+                <span className="font-bold">Udyog360</span>
               </Link>
-              {renderNavItems(navItems)} {/* Render nav items with tree view */}
+              {renderNavItems(navItems)}
             </nav>
           </SheetContent>
         </Sheet>
@@ -146,6 +147,7 @@ export default function DashboardLayout({
         <div className="flex-1" />
         <div className="flex items-center gap-4">
           <SearchDialog />
+          <NotificationDropdown />
           <UserButton
             afterSignOutUrl="/sign-in"
             appearance={{

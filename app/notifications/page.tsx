@@ -1,0 +1,152 @@
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { Notification, notificationTypeStyles } from '@/types/notification';
+import { getPaginatedNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '@/lib/notifications';
+import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+import DashboardLayout from '@/app/components/dashboard-layout';
+
+// Skeleton component for notifications
+function NotificationSkeleton() {
+  return (
+    <div className="rounded-lg border p-4">
+      <div className="mb-2 rounded px-2 py-1 text-xs inline-block bg-gray-200 animate-pulse"></div>
+      <p className="text-gray-300 animate-pulse h-4 w-3/4 mb-1"></p>
+      <p className="text-gray-300 animate-pulse h-3 w-1/2"></p>
+    </div>
+  );
+}
+
+function NotificationsContent() {
+  const { userId } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadNotifications = async () => {
+      setLoading(true);
+      const { notifications: newNotifications, lastDoc: newLastDoc } = await getPaginatedNotifications(userId);
+      setNotifications(newNotifications);
+      setLastDoc(newLastDoc);
+      setHasMore(newNotifications.length === 10);
+      setLoading(false);
+    };
+
+    loadNotifications();
+  }, [userId]);
+
+  const loadMore = async () => {
+    if (!lastDoc || loadingMore) return;
+
+    setLoadingMore(true);
+    const { notifications: newNotifications, lastDoc: newLastDoc } = await getPaginatedNotifications(lastDoc);
+    setNotifications([...notifications, ...newNotifications]);
+    setLastDoc(newLastDoc);
+    setHasMore(newNotifications.length === 10);
+    setLoadingMore(false);
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    await markNotificationAsRead(notificationId);
+    setNotifications(notifications.map(n =>
+      n.id === notificationId ? { ...n, read: true } : n
+    ));
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!userId) return;
+    await markAllNotificationsAsRead();
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  if (!userId) return null;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Notifications</h1>
+        <Button className='cursor-pointer' onClick={handleMarkAllAsRead} variant="outline">
+          Mark all as read
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="space-y-4">
+          <NotificationSkeleton />
+          <NotificationSkeleton />
+          <NotificationSkeleton />
+        </div>
+      ) : notifications.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">No notifications yet</div>
+      ) : (
+        <div className="space-y-4">
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className={`rounded-lg border p-4 ${!notification.read ? 'bg-gray-50' : ''
+                }`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className={`mb-2 rounded px-2 py-1 text-xs inline-block ${notificationTypeStyles[notification.type]}`}>
+                    {notification.title}
+                  </div>
+                  <p className="text-gray-700">{notification.message}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true })}
+                  </p>
+                </div>
+                {!notification.read && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleMarkAsRead(notification.id)}
+                  >
+                    Mark as read
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={loadMore}
+                disabled={loadingMore}
+                variant="outline"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load more'
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <DashboardLayout>
+      <Suspense fallback={<NotificationSkeleton />}>
+        <NotificationsContent />
+      </Suspense>
+    </DashboardLayout>
+  )
+}

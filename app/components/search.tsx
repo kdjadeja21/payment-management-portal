@@ -101,7 +101,14 @@ export function SearchDialog() {
     <>
       <Button
         variant="outline"
-        className="relative h-9 w-full justify-start text-sm text-gray-700 sm:pr-12 md:w-40 lg:w-75 hover:bg-gray-100"
+        className="relative h-9 w-auto justify-center text-sm text-gray-700 hover:bg-gray-100 md:hidden"
+        onClick={() => setOpen(true)}
+      >
+        <Search className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outline"
+        className="relative h-9 w-full justify-start text-sm text-gray-700 hidden md:flex sm:pr-12 md:w-40 lg:w-75 hover:bg-gray-100"
         onClick={() => setOpen(true)}
       >
         <Search className="mr-2 h-4 w-4" />
