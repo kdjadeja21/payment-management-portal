@@ -7,11 +7,10 @@ import {
   deleteDoc,
   getDocs,
   doc,
-  serverTimestamp,
-  Timestamp,
   query,
   where,
   getDoc,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Retailer } from "@/types";
@@ -23,7 +22,7 @@ export async function getRetailers(retailerId?: string): Promise<Retailer[]> {
     const { userId } = await auth();
     if (!userId) redirect("/sign-in");
 
-    let q = query(collection(db, "retailers"), where("userId", "==", userId));
+    let q = query(collection(db, "retailers"), where("userId", "==", userId), orderBy("createdAt", "desc"));
     if (retailerId) {
       q = query(q, where("id", "==", retailerId));
     }
