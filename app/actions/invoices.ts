@@ -192,18 +192,16 @@ export async function deleteInvoice(invoiceId: string): Promise<void> {
     const q = query(
       paymentsRef,
       where("userId", "==", userId),
-      where("invoices", "array-contains", { invoiceId: invoiceId })
+      where("invoiceIds", "array-contains", invoiceId)
     )
     const paymentSnapshot = await getDocs(q)
-
-    console.log("Payment Snapshot Records:", paymentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
     if (paymentSnapshot.docs.length > 0) {
       throw new Error("Cannot delete invoice that is connected with payments. Please delete all related payments first.");
     }
 
     // If no payments found, proceed with deletion
-    // await deleteDoc(invoiceRef)
+    await deleteDoc(invoiceRef)
   } catch (error) {
     console.error('Error deleting invoice:', error)
     throw error

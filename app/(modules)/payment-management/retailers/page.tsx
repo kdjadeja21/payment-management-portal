@@ -30,23 +30,24 @@ function RetailersContent() {
   const page = parseInt(searchParams.get('page') || '1')
   const perPage = parseInt(searchParams.get('perPage') || '5')
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [retailersData, invoicesData, paymentsData] = await Promise.all([
-          getRetailers(),
-          getInvoices(),
-          getPayments()
-        ])
-        setRetailers(retailersData)
-        setInvoices(invoicesData)
-        setPayments(paymentsData)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = async () => {
+    try {
+      const [retailersData, invoicesData, paymentsData] = await Promise.all([
+        getRetailers(),
+        getInvoices(),
+        getPayments()
+      ])
+      setRetailers(retailersData)
+      setInvoices(invoicesData)
+      setPayments(paymentsData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchData()
   }, [])
 
@@ -119,26 +120,7 @@ function RetailersContent() {
               Add Retailer
             </Button>
           }
-          onSuccess={() => {
-            // Refresh the data
-            const fetchData = async () => {
-              try {
-                const [retailersData, invoicesData, paymentsData] = await Promise.all([
-                  getRetailers(),
-                  getInvoices(),
-                  getPayments()
-                ])
-                setRetailers(retailersData)
-                setInvoices(invoicesData)
-                setPayments(paymentsData)
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'An error occurred')
-              } finally {
-                setLoading(false)
-              }
-            }
-            fetchData()
-          }}
+          onSuccess={fetchData} // Use the reusable fetchData function
         />
       </div>
       
@@ -189,6 +171,7 @@ function RetailersContent() {
                   <RetailerForm
                     retailer={retailer}
                     trigger={<Button className="cursor-pointer" variant="outline" size="sm">Edit</Button>}
+                    onSuccess={fetchData} // Use the reusable fetchData function
                   />
                 </CardFooter>
               </Card>

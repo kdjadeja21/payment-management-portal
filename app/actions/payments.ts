@@ -83,6 +83,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
         invoiceId: invoice.invoiceId,
         amountApplied: invoice.amountApplied
       })),
+      invoiceIds: paymentData.invoices.map(invoice => invoice.invoiceId), // Added invoiceIds field
       createdAt: serverTimestamp(),
     })
 
