@@ -4,12 +4,12 @@ import { Notification, NotificationType } from '@/types/notification';
 import { useAuth } from '@clerk/nextjs';
 
 export const createNotification = async (
+  userId: string,
   title: string,
   message: string,
   type: NotificationType,
   link: string | null = null
 ) => {
-  const { userId } = useAuth();
   if (!userId) throw new Error("User not authenticated");
 
   const notification: Omit<Notification, 'id'> = {
@@ -68,8 +68,7 @@ export const getLatestNotifications = (userId: string, callback: (notifications:
   const q = query(
     notificationsRef,
     where('userId', '==', userId),
-    orderBy('createdAt', 'desc'),
-    limit(3)
+    orderBy('createdAt', 'desc')
   );
 
   return onSnapshot(q, (snapshot) => {

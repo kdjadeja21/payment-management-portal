@@ -75,15 +75,6 @@ export default function DashboardLayout({
   const renderNavItems = (items: NavItem[]) => {
     return items.map((item) => (
       <div key={item.href}>
-        {/* {item.href === "#" && (
-          <div className="flex items-center justify-center my-2">
-            <div className="flex-grow border-t border-gray-300"></div>
-            <span className="mx-4 text-xs font-semibold text-gray-900">{item.title}</span>
-            <div className="flex-grow border-t border-gray-300"></div>
-          </div>
-
-        )} */}
-
         {
           item.href === "#" ?
             <div className="flex items-center justify-center my-2">
@@ -118,7 +109,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6 w-full">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b px-4 sm:px-6 w-full bg-white shadow-xs">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -159,9 +150,9 @@ export default function DashboardLayout({
         </div>
       </header>
       <div className="grid flex-1 md:grid-cols-[220px_1fr]">
-        <aside className="hidden border-r bg-muted/40 md:block">
+        <aside className="hidden border-r bg-white md:block shadow-xs">
           <nav className="grid gap-2 p-4 text-sm">
-            {renderNavItems(navItems)} {/* Render nav items with tree view */}
+            {renderNavItems(navItems)}
           </nav>
         </aside>
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>

@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Bell, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Notification, notificationTypeStyles } from '@/types/notification';
-import { getLatestNotifications, markNotificationAsRead } from '@/lib/notifications';
+import { Notification, notificationTypeStyles, notificationTypeIcons } from '@/types/notification';
+import { getLatestNotifications, markNotificationAsRead } from '@/app/actions/notifications';
 import { useAuth } from '@clerk/nextjs';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Importing shadcn Popover
-import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'; // Importing shadcn components
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import React from 'react';
 
 export function NotificationDropdown() {
   const { userId, isLoaded } = useAuth();
@@ -39,15 +39,6 @@ export function NotificationDropdown() {
     };
   }, [isLoaded, userId]);
 
-  const handleNotificationClick = async (notification: Notification) => {
-    if (!notification.read) {
-      await markNotificationAsRead(notification.id);
-    }
-    if (notification.link) {
-      router.push(notification.link);
-    }
-  };
-
   if (!isLoaded) {
     return (
       <div className="relative p-2">
@@ -58,12 +49,23 @@ export function NotificationDropdown() {
 
   if (!userId) return null;
 
+  console.log({ notifications })
+
+  // Show only the latest 3 notifications
+  const latestNotifications = notifications.slice(0, 3);
+  const unreadCount = notifications.filter(notification => !notification.read).length;
+  const displayCount = unreadCount > 9 ? '9+' : unreadCount;
+
   return (
     <Popover>
       <PopoverTrigger>
         <button className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer">
           <Bell className="h-6 w-6" />
-          <Badge className="absolute -top-1.5 -right-1.5">21</Badge>
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1.5 -right-1.5">
+              {displayCount}
+            </Badge>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -78,29 +80,58 @@ export function NotificationDropdown() {
           ) : notifications.length === 0 ? (
             <div className="px-4 py-2 text-sm text-gray-700">No notifications</div>
           ) : (
-            notifications.map((notification) => (
-              <Card key={notification.id} className={`mb-2 ${!notification.read ? 'bg-gray-50' : ''}`}>
-                <CardHeader>
-                  <div className={`mb-1 rounded px-2 py-1 text-xs ${notificationTypeStyles[notification.type]}`}>
-                    {notification.title}
+            latestNotifications.map((notification) => {
+              const Icon = notificationTypeIcons[notification.type];
+              const style = notificationTypeStyles[notification.type];
+              const isUnread = !notification.read;
+              const hasLink = !!notification.link;
+
+              return (
+                <div
+                  key={notification.id}
+                  className={`w-full px-4 py-3 ${isUnread ? 'bg-gray-50' : 'bg-white'} hover:bg-gray-50 transition`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Icon className="h-4 w-4 mt-1 text-gray-500" />
+                    <div className="flex-1 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs font-semibold rounded px-1.5 py-0.5 ${style}`}>
+                          {notification.title}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <div
+                        className="mt-1 text-gray-700 text-sm"
+                        dangerouslySetInnerHTML={{ __html: notification.message }}
+                      />
+                      <div className="mt-2 flex gap-2 justify-end">
+                        {isUnread && (
+                          <button
+                            onClick={async () => await markNotificationAsRead(notification.id)}
+                            className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 rounded border border-gray-300 hover:bg-gray-100 cursor-pointer"
+                          >
+                            Mark as Read
+                          </button>
+                        )}
+                        {hasLink && (
+                          <button
+                            onClick={async () => {
+                              if (isUnread) await markNotificationAsRead(notification.id);
+                              router.push(notification.link!);
+                            }}
+                            className="text-xs text-blue-600 hover:text-white px-2 py-1 rounded bg-blue-50 hover:bg-blue-600 border border-blue-200 cursor-pointer"
+                          >
+                            View
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700">{notification.message}</p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true })}
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <button
-                    onClick={() => handleNotificationClick(notification)}
-                    className="block w-full text-left text-sm hover:bg-gray-100"
-                  >
-                    View
-                  </button>
-                </CardFooter>
-              </Card>
-            ))
+                </div>
+              );
+            })
           )}
           <div className="border-t border-gray-100">
             <a
