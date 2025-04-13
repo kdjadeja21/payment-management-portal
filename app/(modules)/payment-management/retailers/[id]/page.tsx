@@ -4,7 +4,7 @@ const dynamic = "force-dynamic";
 import { Suspense, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, EditIcon, EyeIcon, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, EditIcon, EyeIcon, Plus, Trash2, Share2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
@@ -30,6 +30,18 @@ import DashboardLayout from "@/app/components/dashboard-layout";
 import { Retailer, Invoice, Payment } from "@/types";
 import { deleteRetailer } from "@/app/actions/retailers";
 import { ConfirmationDialog } from "@/app/components/confirmation-dialog";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+type JsPDFWithAutoTable = jsPDF & {
+  autoTable: (options: any) => jsPDF;
+  internal: {
+    getNumberOfPages: () => number;
+    pageSize: {
+      height: number;
+    };
+  };
+};
 
 function RetailerContent() {
   const { id } = useParams<{ id: string }>();
@@ -105,6 +117,141 @@ function RetailerContent() {
   const sortedInvoices = [...invoices].sort((a, b) => b.invoiceDate.getTime() - a.invoiceDate.getTime());
   const sortedPayments = [...payments].sort((a, b) => b.paymentDate.getTime() - a.paymentDate.getTime());
 
+  const generatePDFReport = () => {
+    const doc = new jsPDF() as any;
+    const today = new Date();
+    const formattedDate = formatDate(today);
+  
+    // Add logo placeholder (replace with actual image if available)
+    // doc.addImage('logo.png', 'PNG', 15, 10, 20, 20); // Uncomment to use an actual logo
+  
+    // Professional Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24); // Increased font size for better visibility
+    doc.setTextColor(40, 40, 40);
+    doc.text("Retailer Invoice Summary", 105, 20, { align: "center" });
+  
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(0, 0, 0);
+    doc.line(15, 25, 195, 25); // underline header
+  
+    // Retailer info
+    const retailerName = retailer?.name
+      ? retailer.name.charAt(0).toUpperCase() + retailer.name.slice(1)
+      : "N/A";
+  
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(15); // Increased font size for retailer name
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Retailer:`, 20, 40); // Adjusted Y position for better spacing
+    doc.setFont("helvetica", "bold");
+    doc.text(retailerName, 45, 40);
+  
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13); // Slightly smaller font for report date
+    doc.text(`Report Date:`, 130, 40); // Adjusted Y position for better spacing
+    doc.setFont("helvetica", "bold");
+    doc.text(formattedDate, 165, 40);
+  
+    // Total due amount
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16); // Increased font size for total due amount
+    doc.setTextColor(20, 20, 20);
+    const totalDueText = `Total Due: ${totalOutstanding.toFixed(2)}`; // Added currency symbol
+    const totalDueWidth = doc.getTextWidth(totalDueText);
+    doc.text(totalDueText, 20, 55); // Adjusted Y position for better spacing
+    doc.setDrawColor(100, 100, 255);
+    doc.setLineWidth(0.7);
+    doc.line(20, 57, 20 + totalDueWidth, 57);
+  
+    // Table Data
+    const tableData = sortedInvoices.map((invoice) => {
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const dueDate = new Date(invoice.dueDate);
+      const overdueDays = Math.max(
+        0,
+        Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 3600 * 24))
+      );
+      return [
+        invoice.invoiceName || "",
+        formatDate(invoiceDate),
+        formatDate(dueDate),
+        `${invoice.amount.toFixed(2)}`, // Added currency symbol
+        invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1),
+        invoice.remainingAmount
+          ? `${invoice.remainingAmount.toFixed(2)}` // Added currency symbol
+          : "N/A",
+        invoice.status === "paid"
+          ? "-"
+          : overdueDays > 0
+          ? `${overdueDays} days overdue`
+          : "On time",
+      ];
+    });
+  
+    // Table Styling
+    autoTable(doc, {
+      startY: 65, // Adjusted start position for better spacing
+      head: [
+        [
+          "Invoice ID",
+          "Invoice Date",
+          "Due Date",
+          "Amount",
+          "Status",
+          "Remaining Amount",
+          "Overdue",
+        ],
+      ],
+      body: tableData,
+      theme: "striped",
+      headStyles: {
+        fillColor: [52, 73, 94],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        3: { halign: "right" }, // Amount column
+      },
+      didParseCell: function (data: any) {
+        if (data.section === "body") {
+          const cell = data.row.cells[4]; // Status column
+          const status = Array.isArray(cell.text)
+            ? cell.text[0]?.toLowerCase()
+            : String(cell.text).toLowerCase();
+  
+          if (status === "unpaid" || status === "partial") {
+            data.cell.styles.fillColor = [255, 230, 230]; // Soft red
+          }
+  
+          const dueDate = new Date(data.row.raw[2]);
+          if (dueDate < today && (status === "unpaid" || status === "partial")) {
+            data.cell.styles.fillColor = [255, 210, 210]; // More red if overdue
+          }
+        }
+      },
+    });
+  
+    // Footer with page numbers
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        105,
+        doc.internal.pageSize.height - 10,
+        { align: "center" }
+      );
+    }
+  
+    // Save file with professional naming
+    const filename = `Retailer_Report_${retailer?.name?.replace(/\s+/g, "_") || "Unknown"}_${formattedDate}.pdf`;
+    doc.save(filename);
+  };
+  
+
   if (loading) {
     return <RetailerSkeleton />;
   }
@@ -115,22 +262,22 @@ function RetailerContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-4 p-4">
+        <div className="flex items-center gap-3">
           <Button asChild variant="ghost" size="icon">
             <Link href="/payment-management/retailers">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back</span>
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">{retailer.name}</h1>
+          <h1 className="text-2xl font-bold truncate">{retailer.name}</h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <RetailerForm
             retailer={retailer}
             onSuccess={handleRetailerSuccess}
             trigger={
-              <Button className="cursor-pointer" variant="outline" size="sm">
+              <Button className="w-full md:w-auto" variant="outline" size="sm">
                 Edit Retailer
               </Button>
             }
@@ -141,7 +288,7 @@ function RetailerContent() {
             trigger={
               <Button
                 variant="destructive"
-                className="cursor-pointer"
+                className="w-full md:w-auto"
                 disabled={invoices.length > 0}
                 title={
                   invoices.length > 0
@@ -156,6 +303,15 @@ function RetailerContent() {
             onConfirm={() => deleteRetailer(retailer.id)}
             onSuccess={() => router.push("/payment-management/retailers")}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full md:w-auto"
+            onClick={generatePDFReport}
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Share Report
+          </Button>
           {totalOutstanding > 0 && (
             <PaymentForm retailer={retailer} totalDue={totalOutstanding} onSuccess={handlePaymentSuccess} />
           )}
