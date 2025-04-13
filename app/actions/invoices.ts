@@ -18,9 +18,11 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Invoice, DueCondition } from '@/types'
+import { NotificationType } from '@/types/notification'
 import { calculateDueDays, getStatusFromDueDays } from '@/lib/utils'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { createNotification } from '@/app/actions/notifications'
 
 export async function getInvoices(filters?: {
   retailerId?: string
@@ -152,6 +154,19 @@ export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): 
       const isPaid = currentData.paidAmount === currentData.amount
       const dueDays = calculateDueDays(invoiceData.dueDate)
       invoiceData.status = getStatusFromDueDays(dueDays, isPaid)
+
+      // Check if due date is today or passed
+      const today = new Date();
+      const dueDate = new Date(invoiceData.dueDate);
+      const invoiceName = invoiceData.invoiceName;
+      const retailerName = invoiceData.retailerName;
+      const invoiceLink = `/payment-management/invoices/${id}`;
+      if (dueDate.toDateString() === today.toDateString()) {
+        await createNotification(userId, "Invoice Due Today", `Your invoice <strong>${invoiceName}</strong> from <strong>${retailerName}</strong> is due today.`, NotificationType.InvoiceDue, invoiceLink);
+      } else if (dueDate < today) {
+        const daysPassed = Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 3600 * 24));
+        await createNotification(userId, "Invoice Due Passed", `Your invoice <strong>${invoiceName}</strong> from <strong>${retailerName}</strong> is past due by <strong>${daysPassed} day(s)</strong>.`, NotificationType.InvoiceOverdue, invoiceLink);
+      }
     }
 
     // Convert Date fields to Firestore Timestamp
