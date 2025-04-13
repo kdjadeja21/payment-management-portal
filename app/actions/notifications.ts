@@ -30,8 +30,7 @@ export const markNotificationAsRead = async (notificationId: string) => {
   await updateDoc(notificationRef, { read: true });
 };
 
-export const markAllNotificationsAsRead = async () => {
-  const { userId } = useAuth();
+export const markAllNotificationsAsRead = async (userId: string) => {
   if (!userId) throw new Error("User not authenticated");
 
   const notificationsRef = collection(db, 'notifications');
@@ -43,6 +42,8 @@ export const markAllNotificationsAsRead = async () => {
   );
   
   await Promise.all(batch);
+  
+  return { success: true, message: 'All notifications marked as read.' }; // Return success message
 };
 
 export const getUnreadNotificationsCount = (callback: (count: number) => void) => {

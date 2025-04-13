@@ -49,8 +49,6 @@ export function NotificationDropdown() {
 
   if (!userId) return null;
 
-  console.log({ notifications })
-
   // Show only the latest 3 notifications
   const latestNotifications = notifications.slice(0, 3);
   const unreadCount = notifications.filter(notification => !notification.read).length;
@@ -89,7 +87,7 @@ export function NotificationDropdown() {
               return (
                 <div
                   key={notification.id}
-                  className={`w-full px-4 py-3 ${isUnread ? 'bg-gray-50' : 'bg-white'} hover:bg-gray-50 transition`}
+                  className={`w-full my-2 px-2 py-3 rounded-md ${isUnread ? 'bg-gray-50' : 'bg-white'} hover:bg-gray-50 transition`}
                 >
                   <div className="flex items-start gap-3">
                     <Icon className="h-4 w-4 mt-1 text-gray-500" />
