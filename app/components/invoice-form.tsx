@@ -232,10 +232,6 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                               alert("Please select a valid date. It cannot be earlier than January 1, 1900.");
                               return;
                             }
-                            if (selectedDate < form.getValues("invoiceDate")) {
-                              alert("Please select a valid date. It cannot be earlier than the invoice date.");
-                              return;
-                            }
                             field.onChange(selectedDate);
                           }}
                           autoComplete="off"
@@ -250,7 +246,6 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }
-                          initialFocus
                         />
                       )}
                     </PopoverContent>
@@ -287,10 +282,6 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                           value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
                           onChange={(e) => {
                             const selectedDate = new Date(e.target.value);
-                            if (selectedDate > new Date()) {
-                              alert("The selected date cannot be in the future.");
-                              return;
-                            } 
                             if (selectedDate < new Date("1900-01-01")) {
                               alert("The selected date cannot be before January 1, 1900.");
                               return;
@@ -311,8 +302,8 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                           selected={field.value}
                           onSelect={field.onChange}
                           disabled={(date) =>
-                            date > new Date() || 
-                            date < new Date("1900-01-01") || 
+                            date > new Date() ||
+                            date < new Date("1900-01-01") ||
                             date < form.getValues("invoiceDate")
                           }
                           initialFocus
@@ -328,7 +319,7 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
               <Button type="button" variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !form.watch("retailerId")}>
                 {isSubmitting ? "Saving..." : invoice ? "Update" : "Add"}
               </Button>
             </DialogFooter>
