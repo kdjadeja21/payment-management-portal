@@ -83,6 +83,22 @@ function InvoiceContent() {
       accessorKey: "dueDays",
       header: "Due Days",
     },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            router.push(`/payment-management/invoices/${row.original.id}`)
+          }
+          className="cursor-pointer"
+        >
+          View
+        </Button>
+      ),
+    },
   ];
 
   useEffect(() => {
