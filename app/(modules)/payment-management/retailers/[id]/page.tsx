@@ -4,7 +4,14 @@ const dynamic = "force-dynamic";
 import { Suspense, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, EditIcon, EyeIcon, Plus, Trash2, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  EditIcon,
+  EyeIcon,
+  Plus,
+  Trash2,
+  Share2,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 
@@ -30,8 +37,10 @@ import DashboardLayout from "@/app/components/dashboard-layout";
 import { Retailer, Invoice, Payment } from "@/types";
 import { deleteRetailer } from "@/app/actions/retailers";
 import { ConfirmationDialog } from "@/app/components/confirmation-dialog";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { DataTable } from "@/components/ui/data-table/data-table";
+import { ColumnDef } from "@tanstack/react-table";
 
 type JsPDFWithAutoTable = jsPDF & {
   autoTable: (options: any) => jsPDF;
@@ -109,50 +118,63 @@ function RetailerContent() {
   };
 
   // Calculate stats
-  const totalInvoiced = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const totalInvoiced = invoices.reduce(
+    (sum, invoice) => sum + invoice.amount,
+    0
+  );
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const totalOutstanding = invoices.filter((invoice) => invoice.status === "due" || invoice.status === "overdue").reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
-  const totalOverdue = invoices.filter((invoice) => invoice.status === "overdue").reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
+  const totalOutstanding = invoices
+    .filter(
+      (invoice) => invoice.status === "due" || invoice.status === "overdue"
+    )
+    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
+  const totalOverdue = invoices
+    .filter((invoice) => invoice.status === "overdue")
+    .reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
 
-  const sortedInvoices = [...invoices].sort((a, b) => b.invoiceDate.getTime() - a.invoiceDate.getTime());
-  const sortedPayments = [...payments].sort((a, b) => b.paymentDate.getTime() - a.paymentDate.getTime());
+  const sortedInvoices = [...invoices].sort(
+    (a, b) => b.invoiceDate.getTime() - a.invoiceDate.getTime()
+  );
+  const sortedPayments = [...payments].sort(
+    (a, b) => b.paymentDate.getTime() - a.paymentDate.getTime()
+  );
 
   const generatePDFReport = () => {
     const doc = new jsPDF() as any;
     const today = new Date();
     const formattedDate = formatDate(today);
-  
+
     // Add logo placeholder (replace with actual image if available)
     // doc.addImage('logo.png', 'PNG', 15, 10, 20, 20); // Uncomment to use an actual logo
-  
+
     // Professional Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24); // Increased font size for better visibility
     doc.setTextColor(40, 40, 40);
     doc.text("Retailer Invoice Summary", 105, 20, { align: "center" });
-  
+
     doc.setLineWidth(0.5);
     doc.setDrawColor(0, 0, 0);
     doc.line(15, 25, 195, 25); // underline header
-  
+
     // Retailer info
     const retailerName = retailer?.name
       ? retailer.name.charAt(0).toUpperCase() + retailer.name.slice(1)
       : "N/A";
-  
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(15); // Increased font size for retailer name
     doc.setTextColor(60, 60, 60);
     doc.text(`Retailer:`, 20, 40); // Adjusted Y position for better spacing
     doc.setFont("helvetica", "bold");
     doc.text(retailerName, 45, 40);
-  
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(13); // Slightly smaller font for report date
     doc.text(`Report Date:`, 130, 40); // Adjusted Y position for better spacing
     doc.setFont("helvetica", "bold");
     doc.text(formattedDate, 165, 40);
-  
+
     // Total due amount
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16); // Increased font size for total due amount
@@ -163,7 +185,7 @@ function RetailerContent() {
     doc.setDrawColor(100, 100, 255);
     doc.setLineWidth(0.7);
     doc.line(20, 57, 20 + totalDueWidth, 57);
-  
+
     // Table Data
     const tableData = sortedInvoices.map((invoice) => {
       const invoiceDate = new Date(invoice.invoiceDate);
@@ -188,7 +210,7 @@ function RetailerContent() {
           : "On time",
       ];
     });
-  
+
     // Table Styling
     autoTable(doc, {
       startY: 65, // Adjusted start position for better spacing
@@ -219,19 +241,22 @@ function RetailerContent() {
           const status = Array.isArray(cell.text)
             ? cell.text[0]?.toLowerCase()
             : String(cell.text).toLowerCase();
-  
+
           if (status === "unpaid" || status === "partial") {
             data.cell.styles.fillColor = [255, 230, 230]; // Soft red
           }
-  
+
           const dueDate = new Date(data.row.raw[2]);
-          if (dueDate < today && (status === "unpaid" || status === "partial")) {
+          if (
+            dueDate < today &&
+            (status === "unpaid" || status === "partial")
+          ) {
             data.cell.styles.fillColor = [255, 210, 210]; // More red if overdue
           }
         }
       },
     });
-  
+
     // Footer with page numbers
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
@@ -245,12 +270,154 @@ function RetailerContent() {
         { align: "center" }
       );
     }
-  
+
     // Save file with professional naming
-    const filename = `Retailer_Report_${retailer?.name?.replace(/\s+/g, "_") || "Unknown"}_${formattedDate}.pdf`;
+    const filename = `Retailer_Report_${
+      retailer?.name?.replace(/\s+/g, "_") || "Unknown"
+    }_${formattedDate}.pdf`;
     doc.save(filename);
   };
-  
+
+  const invoiceColumns: ColumnDef<Invoice>[] = [
+    {
+      accessorKey: "invoiceName",
+      header: "Invoice Name",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.getValue("invoiceName")}</div>
+          <div className="text-sm text-muted-foreground">
+            {formatDate(row.original.invoiceDate)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">
+            {formatCurrency(row.getValue("amount"))}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Due: {formatDate(row.original.dueDate)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "paidAmount",
+      header: "Paid Amount",
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">
+            {formatCurrency(row.original.paidAmount)}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Remaining: {formatCurrency(row.original.remainingAmount)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <StatusBadge
+          status={row.getValue("status")}
+          dueDays={row.original.dueDays}
+        />
+      ),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const invoice = row.original;
+        return (
+          <div className="flex justify-end gap-2">
+            <InvoiceForm
+              invoice={invoice}
+              retailers={retailers}
+              onSuccess={handleInvoiceSuccess}
+              trigger={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center cursor-pointer"
+                >
+                  <EditIcon className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              }
+            />
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center cursor-pointer"
+            >
+              <Link href={`/payment-management/invoices/${invoice.id}`}>
+                <EyeIcon className="mr-2 h-4 w-4" />
+                View
+              </Link>
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const paymentColumns: ColumnDef<Payment>[] = [
+    {
+      accessorKey: "paymentDate",
+      header: "Payment Date",
+      cell: ({ row }) => (
+        <div className="font-medium">
+          {formatDate(row.original.paymentDate)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: ({ row }) => (
+        <div className="font-medium">
+          {formatCurrency(row.getValue("amount"))}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "invoices",
+      header: "Applied To",
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {row.original.invoices.length}{" "}
+          {row.original.invoices.length === 1 ? "invoice" : "invoices"}
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const payment = row.original;
+        return (
+          <div className="flex justify-end">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="flex items-center cursor-pointer"
+            >
+              <Link href={`/payment-management/payments/${payment.id}`}>
+                <EyeIcon className="mr-2 h-4 w-4" />
+                View Details
+              </Link>
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
 
   if (loading) {
     return <RetailerSkeleton />;
@@ -313,7 +480,11 @@ function RetailerContent() {
             Share Report
           </Button>
           {totalOutstanding > 0 && (
-            <PaymentForm retailer={retailer} totalDue={totalOutstanding} onSuccess={handlePaymentSuccess} />
+            <PaymentForm
+              retailer={retailer}
+              totalDue={totalOutstanding}
+              onSuccess={handlePaymentSuccess}
+            />
           )}
         </div>
       </div>
@@ -321,11 +492,17 @@ function RetailerContent() {
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoiced</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Invoiced
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalInvoiced)}</div>
-            <p className="text-xs text-muted-foreground">{invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}</p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalInvoiced)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -333,8 +510,12 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalPaid)}</div>
-            <p className="text-xs text-muted-foreground">{payments.length} {payments.length === 1 ? "payment" : "payments"}</p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalPaid)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {payments.length} {payments.length === 1 ? "payment" : "payments"}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -342,8 +523,17 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalOutstanding)}</div>
-            <p className="text-xs text-muted-foreground">{invoices.filter((i) => i.status === "due" || i.status === "overdue").length} unpaid</p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalOutstanding)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {
+                invoices.filter(
+                  (i) => i.status === "due" || i.status === "overdue"
+                ).length
+              }{" "}
+              unpaid
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -351,8 +541,12 @@ function RetailerContent() {
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalOverdue)}</div>
-            <p className="text-xs text-muted-foreground">{invoices.filter((i) => i.status === "overdue").length} overdue</p>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalOverdue)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {invoices.filter((i) => i.status === "overdue").length} overdue
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -360,9 +554,15 @@ function RetailerContent() {
       <Tabs defaultValue="invoices">
         <div className="flex items-center justify-between">
           <TabsList>
-            <TabsTrigger className="cursor-pointer" value="invoices">Invoices</TabsTrigger>
-            <TabsTrigger className="cursor-pointer" value="payments">Payments</TabsTrigger>
-            <TabsTrigger className="cursor-pointer" value="details">Details</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="invoices">
+              Invoices
+            </TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="payments">
+              Payments
+            </TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="details">
+              Details
+            </TabsTrigger>
           </TabsList>
 
           <InvoiceForm
@@ -370,7 +570,10 @@ function RetailerContent() {
             defaultRetailerId={retailer.id}
             onSuccess={handleInvoiceSuccess}
             trigger={
-              <Button size="sm" className="bg-blue-700 hover:bg-blue-800 text-white cursor-pointer">
+              <Button
+                size="sm"
+                className="bg-blue-700 hover:bg-blue-800 text-white cursor-pointer"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Invoice
               </Button>
@@ -382,62 +585,23 @@ function RetailerContent() {
           <Card>
             <CardHeader>
               <CardTitle>Invoices</CardTitle>
-              <CardDescription>Manage invoices for {retailer.name}</CardDescription>
+              <CardDescription>
+                Manage invoices for {retailer.name}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {sortedInvoices.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">No invoices found for this retailer.</p>
-                ) : (
-                  <div className="rounded-md border">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 font-medium">
-                      <div>Invoice Name</div>
-                      <div>Amount</div>
-                      <div>Paid Amount</div>
-                      <div>Status</div>
-                      <div className="text-right">Actions</div>
-                    </div>
-                    {sortedInvoices.map((invoice) => (
-                      <div key={invoice.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 border-t p-4">
-                        <div>
-                          <div className="font-medium">{invoice.invoiceName}</div>
-                          <div className="text-sm text-muted-foreground">{formatDate(invoice.invoiceDate)}</div>
-                        </div>
-                        <div>
-                          <div className="font-medium">{formatCurrency(invoice.amount)}</div>
-                          <div className="text-sm text-muted-foreground">Due: {formatDate(invoice.dueDate)}</div>
-                        </div>
-                        <div>
-                          <div className="font-medium">{formatCurrency(invoice.paidAmount)}</div>
-                          <div className="text-sm text-muted-foreground">Remaining: {formatCurrency(invoice.remainingAmount)}</div>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <StatusBadge status={invoice.status} dueDays={invoice.dueDays} />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <InvoiceForm
-                            invoice={invoice}
-                            retailers={retailers}
-                            onSuccess={handleInvoiceSuccess}
-                            trigger={
-                              <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
-                                <EditIcon />
-                                Edit
-                              </Button>
-                            }
-                          />
-                          <Button asChild variant="outline" size="sm" className="flex items-center cursor-pointer">
-                            <Link href={`/payment-management/invoices/${invoice.id}`}>
-                              <EyeIcon />
-                              View
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {sortedInvoices.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  No invoices found for this retailer.
+                </p>
+              ) : (
+                <DataTable
+                  columns={invoiceColumns}
+                  data={sortedInvoices}
+                  searchKey="invoiceName"
+                  pageSize={10}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -446,39 +610,23 @@ function RetailerContent() {
           <Card>
             <CardHeader>
               <CardTitle>Payment History</CardTitle>
-              <CardDescription>View payment history for {retailer.name}</CardDescription>
+              <CardDescription>
+                View payment history for {retailer.name}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {sortedPayments.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">No payments recorded for this retailer.</p>
-                ) : (
-                  <div className="rounded-md border">
-                    <div className="grid grid-cols-4 gap-4 p-4 font-medium">
-                      <div>Payment Date</div>
-                      <div>Amount</div>
-                      <div>Applied To</div>
-                      <div className="text-right">Actions</div>
-                    </div>
-                    {sortedPayments.map((payment) => (
-                      <div key={payment.id} className="grid grid-cols-4 gap-4 border-t p-4">
-                        <div>{formatDate(payment.paymentDate)}</div>
-                        <div>{formatCurrency(payment.amount)}</div>
-                        <div>
-                          <div className="text-sm">{payment.invoices.length} {payment.invoices.length === 1 ? "invoice" : "invoices"}</div>
-                        </div>
-                        <div className="flex justify-end">
-                          <Link className="cursor-pointer" href={`/payment-management/payments/${payment.id}`}>
-                            <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
-                              View Details
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {sortedPayments.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  No payments recorded for this retailer.
+                </p>
+              ) : (
+                <DataTable
+                  columns={paymentColumns}
+                  data={sortedPayments}
+                  searchKey="paymentDate"
+                  pageSize={10}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -498,16 +646,22 @@ function RetailerContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="text-sm font-medium">Email</h3>
-                    <p className="text-muted-foreground">{retailer.email || "Not provided"}</p>
+                    <p className="text-muted-foreground">
+                      {retailer.email || "Not provided"}
+                    </p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium">Phone</h3>
-                    <p className="text-muted-foreground">{retailer.phone || "Not provided"}</p>
+                    <p className="text-muted-foreground">
+                      {retailer.phone || "Not provided"}
+                    </p>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Address</h3>
-                  <p className="text-muted-foreground whitespace-pre-line">{retailer.address || "Not provided"}</p>
+                  <p className="text-muted-foreground whitespace-pre-line">
+                    {retailer.address || "Not provided"}
+                  </p>
                 </div>
               </div>
             </CardContent>

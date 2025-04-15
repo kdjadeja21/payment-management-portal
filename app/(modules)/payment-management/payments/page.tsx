@@ -1,70 +1,73 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ColumnDef } from "@tanstack/react-table";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getPayments } from "@/app/actions/payments"
-import { formatCurrency, formatDateTime } from "@/lib/utils"
-import DashboardLayout from "@/app/components/dashboard-layout"
-import { Payment } from "@/types"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable } from "@/components/ui/data-table/data-table";
+import { getPayments } from "@/app/actions/payments";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
+import DashboardLayout from "@/app/components/dashboard-layout";
+import { Payment } from "@/types";
 
 function PaymentsContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get pagination parameters from URL or use defaults
-  const page = parseInt(searchParams.get('page') || '1')
-  const perPage = parseInt(searchParams.get('perPage') || '10')
+  const columns: ColumnDef<Payment>[] = [
+    {
+      accessorKey: "retailerName",
+      header: "Retailer",
+    },
+    {
+      accessorKey: "paymentDate",
+      header: "Payment Date",
+      cell: ({ row }) => formatDateTime(row.original.paymentDate),
+    },
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: ({ row }) => formatCurrency(row.original.amount),
+    },
+    {
+      accessorKey: "invoices",
+      header: "Applied To",
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {row.original.invoices.length}{" "}
+          {row.original.invoices.length === 1 ? "invoice" : "invoices"}
+        </div>
+      ),
+    },
+  ];
 
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const paymentsData = await getPayments()
-        setPayments(paymentsData)
+        const paymentsData = await getPayments();
+        // Sort payments by date (newest first)
+        const sortedPayments = paymentsData.sort(
+          (a, b) => b.paymentDate.getTime() - a.paymentDate.getTime()
+        );
+        setPayments(sortedPayments);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load payments")
+        setError(
+          err instanceof Error ? err.message : "Failed to load payments"
+        );
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    fetchPayments()
-  }, [])
-
-  // Sort payments by date (newest first)
-  const sortedPayments = [...payments].sort(
-    (a, b) => b.paymentDate.getTime() - a.paymentDate.getTime()
-  )
-
-  // Pagination calculations
-  const totalPages = Math.ceil(sortedPayments.length / perPage)
-  const startIndex = (page - 1) * perPage
-  const endIndex = startIndex + perPage
-  const currentPayments = sortedPayments.slice(startIndex, endIndex)
-
-  const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams)
-    params.set('page', newPage.toString())
-    router.push(`/payment-management/payments?${params.toString()}`)
-  }
-
-  const handlePerPageChange = (value: string) => {
-    const params = new URLSearchParams(searchParams)
-    params.set('perPage', value)
-    params.set('page', '1') // Reset to first page when changing items per page
-    router.push(`/payment-management/payments?${params.toString()}`)
-  }
+    };
+    fetchPayments();
+  }, []);
 
   if (loading) {
-    return <PaymentsSkeleton />
+    return <PaymentsSkeleton />;
   }
 
   if (error) {
@@ -82,7 +85,7 @@ function PaymentsContent() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -96,103 +99,20 @@ function PaymentsContent() {
           <CardTitle>Payment History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <div className="min-w-full">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 font-medium">
-                <div>Retailer</div>
-                <div>Payment Date</div>
-                <div>Amount</div>
-                <div>Applied To</div>
-                <div>Actions</div>
-              </div>
-              {currentPayments.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  No payments found.
-                </div>
-              ) : (
-                currentPayments.map(payment => (
-                  <div
-                    key={payment.id}
-                    className="grid grid-cols-2 md:grid-cols-5 gap-4 border-t p-4"
-                  >
-                    <div className="whitespace-nowrap">{payment.retailerName}</div>
-                    <div className="whitespace-nowrap">{formatDateTime(payment.createdAt)}</div>
-                    <div className="whitespace-nowrap">{formatCurrency(payment.amount)}</div>
-                    <div>
-                      <div className="text-sm">
-                        {payment.invoices.length} {payment.invoices.length === 1 ? 'invoice' : 'invoices'}
-                      </div>
-                    </div>
-                    <div>
-                      <Link
-                        href={`/payment-management/payments/${payment.id}`}
-                        className="cursor-pointer"
-                      >
-                        <Button variant="outline" size="sm" className="flex items-center cursor-pointer">
-                          View
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Show</span>
-              <Select
-                value={perPage.toString()}
-                onValueChange={handlePerPageChange}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue placeholder="Items" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">per page</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => handlePageChange(page - 1)}
-                className="gap-1 cursor-pointer"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === totalPages}
-                onClick={() => handlePageChange(page + 1)}
-                className="gap-1 cursor-pointer"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <DataTable
+            columns={columns}
+            data={payments}
+            searchKey="retailerName"
+            pageSize={10}
+            onView={(row) =>
+              router.push(`/payment-management/payments/${row.id}`)
+            }
+          />
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-
-import { Suspense } from 'react';
 
 export default function PaymentsPage() {
   return (
@@ -201,7 +121,7 @@ export default function PaymentsPage() {
         <PaymentsContent />
       </Suspense>
     </DashboardLayout>
-  )
+  );
 }
 
 function PaymentsSkeleton() {
@@ -218,20 +138,29 @@ function PaymentsSkeleton() {
         <CardContent>
           <div className="rounded-md border">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
-              {Array(4).fill(0).map((_, i) => (
-                <Skeleton key={i} className="h-5 w-full" />
-              ))}
-            </div>
-            {Array(5).fill(0).map((_, i) => (
-              <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t p-4">
-                {Array(4).fill(0).map((_, j) => (
-                  <Skeleton key={j} className="h-5 w-full" />
+              {Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-5 w-full" />
                 ))}
-              </div>
-            ))}
+            </div>
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t p-4"
+                >
+                  {Array(4)
+                    .fill(0)
+                    .map((_, j) => (
+                      <Skeleton key={j} className="h-5 w-full" />
+                    ))}
+                </div>
+              ))}
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
