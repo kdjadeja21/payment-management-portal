@@ -1,20 +1,42 @@
-import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, limit, getDocs, addDoc, updateDoc, doc, onSnapshot, Timestamp, startAfter } from 'firebase/firestore';
-import { Notification, NotificationType } from '@/types/notification';
-import { useAuth } from '@clerk/nextjs';
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  onSnapshot,
+  Timestamp,
+  startAfter,
+} from "firebase/firestore";
+import {
+  Notification,
+  NotificationType,
+  NotificationTitle,
+} from "@/types/notification";
+import { useAuth } from "@clerk/nextjs";
 
 export const createNotification = async (
   userId: string,
-  title: string,
-  message: string,
   type: NotificationType,
+  message: string,
   link: string | null = null
 ) => {
   if (!userId) throw new Error("User not authenticated");
 
-  const notification: Omit<Notification, 'id'> = {
+  // Convert NotificationType to NotificationTitle key
+  const titleKey = type
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("") as keyof typeof NotificationTitle;
+
+  const notification: Omit<Notification, "id"> = {
     userId,
-    title,
+    title: NotificationTitle[titleKey],
     message,
     type,
     link,
@@ -22,39 +44,43 @@ export const createNotification = async (
     createdAt: Timestamp.now(),
   };
 
-  return await addDoc(collection(db, 'notifications'), notification);
+  return await addDoc(collection(db, "notifications"), notification);
 };
 
 export const markNotificationAsRead = async (notificationId: string) => {
-  const notificationRef = doc(db, 'notifications', notificationId);
+  const notificationRef = doc(db, "notifications", notificationId);
   await updateDoc(notificationRef, { read: true });
 };
 
 export const markAllNotificationsAsRead = async (userId: string) => {
   if (!userId) throw new Error("User not authenticated");
 
-  const notificationsRef = collection(db, 'notifications');
-  const q = query(notificationsRef, where('userId', '==', userId), where('read', '==', false));
-  const snapshot = await getDocs(q);
-  
-  const batch = snapshot.docs.map(doc => 
-    updateDoc(doc.ref, { read: true })
+  const notificationsRef = collection(db, "notifications");
+  const q = query(
+    notificationsRef,
+    where("userId", "==", userId),
+    where("read", "==", false)
   );
-  
+  const snapshot = await getDocs(q);
+
+  const batch = snapshot.docs.map((doc) => updateDoc(doc.ref, { read: true }));
+
   await Promise.all(batch);
-  
-  return { success: true, message: 'All notifications marked as read.' }; // Return success message
+
+  return { success: true, message: "All notifications marked as read." }; // Return success message
 };
 
-export const getUnreadNotificationsCount = (callback: (count: number) => void) => {
+export const getUnreadNotificationsCount = (
+  callback: (count: number) => void
+) => {
   const { userId } = useAuth();
   if (!userId) return () => {};
 
-  const notificationsRef = collection(db, 'notifications');
+  const notificationsRef = collection(db, "notifications");
   const q = query(
     notificationsRef,
-    where('userId', '==', userId),
-    where('read', '==', false)
+    where("userId", "==", userId),
+    where("read", "==", false)
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -62,20 +88,23 @@ export const getUnreadNotificationsCount = (callback: (count: number) => void) =
   });
 };
 
-export const getLatestNotifications = (userId: string, callback: (notifications: Notification[]) => void) => {
+export const getLatestNotifications = (
+  userId: string,
+  callback: (notifications: Notification[]) => void
+) => {
   if (!userId) return () => {};
 
-  const notificationsRef = collection(db, 'notifications');
+  const notificationsRef = collection(db, "notifications");
   const q = query(
     notificationsRef,
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
   );
 
   return onSnapshot(q, (snapshot) => {
-    const notifications = snapshot.docs.map(doc => ({
+    const notifications = snapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     })) as Notification[];
     callback(notifications);
   });
@@ -88,32 +117,32 @@ export const getPaginatedNotifications = async (
 ) => {
   if (!userId) return { notifications: [], lastDoc: null };
 
-  const notificationsRef = collection(db, 'notifications');
+  const notificationsRef = collection(db, "notifications");
   let q = query(
     notificationsRef,
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc'),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc"),
     limit(pageSize)
   );
 
   if (lastDoc) {
     q = query(
       notificationsRef,
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc"),
       startAfter(lastDoc),
       limit(pageSize)
     );
   }
 
   const snapshot = await getDocs(q);
-  const notifications = snapshot.docs.map(doc => ({
+  const notifications = snapshot.docs.map((doc) => ({
     id: doc.id,
-    ...doc.data()
+    ...doc.data(),
   })) as Notification[];
 
   return {
     notifications,
-    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null
+    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
   };
-}; 
+};
