@@ -132,10 +132,10 @@ function PaymentDetailsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div className="flex items-center gap-4">
         <Link href="/payment-management/payments">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Payments
           </Button>
@@ -144,28 +144,36 @@ function PaymentDetailsContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-bold">Payment Details</CardTitle>
-          <CardDescription className="text-sm text-gray-500">
+          <CardTitle className="text-base md:text-lg font-bold">
+            Payment Details
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-gray-500">
             Payment made on {payment ? formatDateTime(payment.paymentDate) : ""}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6">
+          <div className="grid gap-4 md:gap-6">
             <div className="grid gap-2">
-              <h3 className="font-medium text-lg">Retailer Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className="font-medium text-base md:text-lg">
+                Retailer Information
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Retailer Name</p>
+                  <p className="text-xs md:text-sm text-gray-600">
+                    Retailer Name
+                  </p>
                   <Link
                     href={`/payment-management/retailers/${payment?.retailerId}`}
-                    className="text-blue-600 hover:underline font-bold"
+                    className="text-blue-600 hover:underline font-bold text-sm md:text-base"
                   >
                     {payment?.retailerName}
                   </Link>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Payment Amount</p>
-                  <p className="font-medium text-lg">
+                  <p className="text-xs md:text-sm text-gray-600">
+                    Payment Amount
+                  </p>
+                  <p className="font-medium text-base md:text-lg">
                     {payment ? formatCurrency(payment.amount) : ""}
                   </p>
                 </div>
@@ -173,8 +181,12 @@ function PaymentDetailsContent() {
             </div>
 
             <div className="grid gap-2">
-              <h3 className="font-medium text-lg">Applied Invoices</h3>
-              <DataTable columns={columns} data={invoices} pageSize={5} />
+              <h3 className="font-medium text-base md:text-lg">
+                Applied Invoices
+              </h3>
+              <div className="overflow-x-auto -mx-6 px-6">
+                <DataTable columns={columns} data={invoices} pageSize={5} />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -185,21 +197,21 @@ function PaymentDetailsContent() {
 
 function PaymentDetailsSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div className="flex items-center gap-4">
         <Skeleton className="h-9 w-[120px]" />
       </div>
 
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-36" />
-          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-5 md:h-6 w-36" />
+          <Skeleton className="h-4 w-48 mt-1" />
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6">
+          <div className="grid gap-4 md:gap-6">
             <div className="grid gap-2">
               <Skeleton className="h-5 w-32" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-5 w-32 mt-1" />
@@ -213,28 +225,30 @@ function PaymentDetailsSkeleton() {
 
             <div className="grid gap-2">
               <Skeleton className="h-5 w-32" />
-              <div className="rounded-md border border-gray-300">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
-                  {Array(4)
+              <div className="overflow-x-auto -mx-6 px-6">
+                <div className="rounded-md border border-gray-300">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
+                    {Array(4)
+                      .fill(0)
+                      .map((_, i) => (
+                        <Skeleton key={i} className="h-5 w-full" />
+                      ))}
+                  </div>
+                  {Array(3)
                     .fill(0)
                     .map((_, i) => (
-                      <Skeleton key={i} className="h-5 w-full" />
+                      <div
+                        key={i}
+                        className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t p-4"
+                      >
+                        {Array(4)
+                          .fill(0)
+                          .map((_, j) => (
+                            <Skeleton key={j} className="h-5 w-full" />
+                          ))}
+                      </div>
                     ))}
                 </div>
-                {Array(3)
-                  .fill(0)
-                  .map((_, i) => (
-                    <div
-                      key={i}
-                      className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t p-4"
-                    >
-                      {Array(4)
-                        .fill(0)
-                        .map((_, j) => (
-                          <Skeleton key={j} className="h-5 w-full" />
-                        ))}
-                    </div>
-                  ))}
               </div>
             </div>
           </div>
