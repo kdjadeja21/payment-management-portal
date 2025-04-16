@@ -44,6 +44,22 @@ function PaymentsContent() {
         </div>
       ),
     },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <Button
+          className="cursor-pointer"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            router.push(`/payment-management/payments/${row.original.id}`)
+          }
+        >
+          View
+        </Button>
+      ),
+    },
   ];
 
   useEffect(() => {
