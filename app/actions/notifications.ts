@@ -141,8 +141,10 @@ export const getPaginatedNotifications = async (
     ...doc.data(),
   })) as Notification[];
 
+  const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+
   return {
     notifications,
-    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
+    lastDoc: lastVisible,
   };
 };
