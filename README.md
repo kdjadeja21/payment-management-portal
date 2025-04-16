@@ -36,12 +36,14 @@ A modern web application built with Next.js for managing payments, subscriptions
 ## 🚀 Getting Started
 
 1. **Clone the repository**
+
    ```bash
    git clone [repository-url]
    cd ptp
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    # or
@@ -50,6 +52,7 @@ A modern web application built with Next.js for managing payments, subscriptions
 
 3. **Set up environment variables**
    Create a `.env` file in the root directory with the following variables:
+
    ```
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
    CLERK_SECRET_KEY=your_clerk_secret_key
@@ -60,6 +63,7 @@ A modern web application built with Next.js for managing payments, subscriptions
    ```
 
 4. **Run the development server**
+
    ```bash
    npm run dev
    # or
@@ -130,6 +134,32 @@ ptp/
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## 🌳 Branch Naming Conventions
+
+### Development Branches
+
+- `feature/name-of-feature`: For adding a new feature.
+- `bugfix/name-of-bug`: For fixing a specific bug.
+- `hotfix/name-of-fix`: For urgent fixes that need to be deployed quickly.
+- `refactor/name-of-refactor`: For refactoring existing code without changing its behavior.
+- `enhancement/name-of-enhancement`: For improving existing functionality without adding new features.
+- `experimental/name-of-experiment`: For experimental features or changes that are not yet ready for production.
+
+### Testing Branches
+
+- `test/feature-name`: For testing a specific feature.
+- `test/bugfix-issue-number`: For testing a bug fix.
+- `test/refactor-name`: For testing a refactor.
+- `test/regression-issue-number`: For testing regression fixes.
+- `test/integration-name-of-feature`: For integration testing of a feature.
+- `test/ui-name-of-feature`: For UI testing of a feature.
+
+### For Config Updates
+
+- `chore/`: For maintenance tasks like config, build scripts, tooling, etc.
+- `docs/`: For changes to documentation only.
+- `infra/`: For infrastructure/configuration changes (like GitHub Actions, Docker, etc.)
 
 ## 📄 License
 
