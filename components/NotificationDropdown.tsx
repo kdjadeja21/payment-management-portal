@@ -57,14 +57,14 @@ export function NotificationDropdown() {
   return (
     <Popover>
       <PopoverTrigger>
-        <button className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer">
+        <div className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none cursor-pointer">
           <Bell className="h-6 w-6" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-1.5 -right-1.5">
               {displayCount}
             </Badge>
           )}
-        </button>
+        </div>
       </PopoverTrigger>
       <PopoverContent
         align="center"
