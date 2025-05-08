@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getRetailers } from "@/app/actions/retailers";
 import { getInvoices } from "@/app/actions/invoices";
 import { getPayments } from "@/app/actions/payments";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, numberToIndianWords } from "@/lib/utils";
 import { StatusBadge } from "@/app/components/status-badge";
 import { RetailerForm } from "@/app/components/retailer-form";
 import { InvoiceForm } from "@/app/components/invoice-form";
@@ -41,6 +41,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { DataTable } from "@/components/ui/data-table/data-table";
 import { ColumnDef } from "@tanstack/react-table";
+import { useUser } from "@clerk/nextjs";
 
 type JsPDFWithAutoTable = jsPDF & {
   autoTable: (options: any) => jsPDF;
@@ -278,6 +279,165 @@ function RetailerContent() {
     doc.save(filename);
   };
 
+  const { user } = useUser();
+
+  const generateReceiptPDF = (payment: Payment) => {
+    const doc = new jsPDF() as JsPDFWithAutoTable;
+    const primaryColor = "#2C3E50"; // Blue
+    const secondaryColor = "#64748b"; // Slate
+    const textColor = "#1e293b"; // Slate dark
+    const successColor = "#006D77"; // Green
+
+    // Calculate outstanding amount
+    const outstandingAmount = invoices
+      .filter(
+        (invoice) => invoice.status === "due" || invoice.status === "overdue"
+      )
+      .reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
+
+    // Title Section with colored header
+    doc.setFillColor(primaryColor);
+    doc.rect(0, 0, doc.internal.pageSize.width, 40, "F");
+    doc.setTextColor("#ffffff");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24);
+    doc.text("Payment Receipt", 105, 25, { align: "center" });
+
+    // Main Content
+    doc.setTextColor(textColor);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+
+    const startY = 60;
+    const col1 = 20;
+    const col2 = 100;
+
+    // Payment Details
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Details", col1, startY);
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(primaryColor);
+    doc.line(col1, startY + 2, 190, startY + 2);
+
+    // Info grid
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment ID:", col1, startY + 20);
+    doc.text("Date:", col1, startY + 35);
+    doc.text("Received From:", col1, startY + 50);
+    doc.text("Amount Received:", col1, startY + 65);
+    doc.text("Outstanding:", col1, startY + 80);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`# ${payment.id}`, col2, startY + 20);
+    doc.text(formatDate(payment.paymentDate), col2, startY + 35);
+    doc.text(retailer?.name || "Unknown", col2, startY + 50);
+
+    // Helper function to split text into lines based on available width
+    const splitTextIntoLines = (text: string, maxWidth: number): string[] => {
+      const words = text.split(" ");
+      const lines: string[] = [];
+      let currentLine = "";
+
+      words.forEach((word) => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (doc.getTextWidth(testLine) <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          lines.push(currentLine);
+          currentLine = word;
+        }
+      });
+
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+
+      return lines;
+    };
+
+    // Function to draw wrapped text
+    const drawWrappedText = (
+      text: string,
+      x: number,
+      y: number,
+      maxWidth: number
+    ): number => {
+      const lines = splitTextIntoLines(text, maxWidth);
+      let currentY = y;
+      const lineHeight = 12; // Adjust line height as needed
+
+      lines.forEach((line, index) => {
+        doc.text(line, x, currentY);
+        currentY += lineHeight;
+      });
+
+      return currentY; // Return the Y position after drawing all lines
+    };
+
+    // Amount Received section
+    const amountReceivedText = `INR ${payment.amount}`;
+    doc.setTextColor(successColor);
+    doc.text(amountReceivedText, col2, startY + 65);
+
+    // Calculate position for amount in words
+    const amountWidth = doc.getTextWidth(amountReceivedText);
+    const amountInWords = `( ${numberToIndianWords(payment.amount)})`;
+
+    doc.setFontSize(10);
+
+    // Draw amount in words with wrapping if needed
+    const maxWordsWidth = 90; // Adjust based on your needs
+    const amountWordsX = col2 + amountWidth + 5;
+    drawWrappedText(amountInWords, amountWordsX, startY + 65, maxWordsWidth);
+
+    // Outstanding amount section
+    const outstandingText = `INR ${outstandingAmount}`;
+    doc.setTextColor(textColor);
+    doc.setFontSize(12);
+    doc.text(outstandingText, col2, startY + 80);
+
+    // Calculate position for outstanding in words
+    const outstandingWidth = doc.getTextWidth(outstandingText);
+    const outstandingInWords = `( ${numberToIndianWords(outstandingAmount)})`;
+    doc.setFontSize(10);
+
+    // Draw outstanding in words with wrapping if needed
+    const outstandingWordsX = col2 + outstandingWidth + 5;
+    drawWrappedText(
+      outstandingInWords,
+      outstandingWordsX,
+      startY + 80,
+      maxWordsWidth
+    );
+
+    // Footer
+    const footerY = doc.internal.pageSize.height - 30;
+    doc.setDrawColor(primaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(20, footerY, 190, footerY);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(
+      `Authorized by: ${user?.fullName || "System Admin"}`,
+      20,
+      footerY + 10
+    );
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(secondaryColor);
+    doc.setFontSize(8);
+    doc.text(
+      "This is a computer-generated document. No signature is required.",
+      105,
+      footerY + 15,
+      { align: "center" }
+    );
+
+    // Save the PDF
+    doc.save(`Receipt_${payment.id.slice(0, 8)}.pdf`);
+  };
+
   const invoiceColumns: ColumnDef<Invoice>[] = [
     {
       accessorKey: "invoiceName",
@@ -401,7 +561,16 @@ function RetailerContent() {
       cell: ({ row }) => {
         const payment = row.original;
         return (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center cursor-pointer"
+              onClick={() => generateReceiptPDF(payment)}
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share Receipt
+            </Button>
             <Button
               asChild
               variant="outline"
