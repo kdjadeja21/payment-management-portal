@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from 'sonner'
+import { ErrorBoundary } from '@/app/components/error-boundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,12 +18,23 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      appearance={{
+        layout: {
+          socialButtonsPlacement: "bottom",
+          socialButtonsVariant: "iconButton",
+          termsPageUrl: "https://clerk.com/terms",
+        },
+      }}
+    >
       <html lang="en" className="light">
         <body className={inter.className}>
-          <main className="container mx-auto">
-            {children}
-          </main>
+          <ErrorBoundary>
+            <main className="container mx-auto">
+              {children}
+            </main>
+          </ErrorBoundary>
           <Toaster richColors position="top-right" />
         </body>
       </html>
