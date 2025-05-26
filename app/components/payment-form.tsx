@@ -30,6 +30,7 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState<number>(totalDue)
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,11 +40,25 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
       toast.error("Payment amount must be greater than zero")
       return
     }
+
+    if (!paymentDate) {
+      toast.error("Payment date is required")
+      return
+    }
+
+    const selectedDate = new Date(paymentDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    if (selectedDate > today) {
+      toast.error("Payment date cannot be in the future")
+      return
+    }
     
     setIsSubmitting(true)
     
     try {
-      const result = await applyLumpSumPayment(retailer.id, amount)
+      const result = await applyLumpSumPayment(retailer.id, amount, paymentDate)
       
       toast.success(`Payment of ${formatCurrency(amount)} applied successfully`)
       setOpen(false)
@@ -77,6 +92,17 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+              <Label htmlFor="paymentDate">Payment Date</Label>
+              <Input
+                id="paymentDate"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="amount">Payment Amount</Label>
               <Input
