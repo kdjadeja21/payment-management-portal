@@ -174,7 +174,7 @@ export async function deletePayment(paymentId: string): Promise<void> {
   }
 }
 
-export async function applyLumpSumPayment(retailerId: string, amount: number): Promise<void> {
+export async function applyLumpSumPayment(retailerId: string, amount: number, paymentDate: string): Promise<void> {
   try {
     const { userId } = await auth()
     if (!userId) redirect('/sign-in')
@@ -203,7 +203,7 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
 
     let remainingPayment = amount
     const paymentInvoices: { invoiceId: string; amountApplied: number }[] = []
-    const invoiceIds: string[] = [] // New field to store just invoice IDs
+    const invoiceIds: string[] = []
 
     // Apply payment to each invoice, starting with oldest
     for (const doc of snapshot.docs) {
@@ -229,7 +229,7 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
         invoiceId: doc.id,
         amountApplied: paymentToApply
       })
-      invoiceIds.push(doc.id) // Store the invoice ID
+      invoiceIds.push(doc.id)
 
       remainingPayment -= paymentToApply
     }
@@ -243,9 +243,9 @@ export async function applyLumpSumPayment(retailerId: string, amount: number): P
       retailerId,
       retailerName,
       amount,
-      paymentDate: new Date(),
+      paymentDate: new Date(paymentDate),
       invoices: paymentInvoices,
-      invoiceIds // Include the new field in the payment record
+      invoiceIds
     })
 
   } catch (error) {
