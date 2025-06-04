@@ -240,11 +240,14 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                         />
                       ) : (
                         <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
+                          value={field.value}
+                          onChange={(date) => {
+                            if (date instanceof Date) {
+                              field.onChange(date);
+                            }
+                          }}
+                          disabledDays={(date) => 
+                            date < new Date("1900-01-01") || date > new Date()
                           }
                         />
                       )}
@@ -298,11 +301,13 @@ export function InvoiceForm({ invoice, retailers, trigger, defaultRetailerId, on
                         />
                       ) : (
                         <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01") ||
+                          value={field.value}
+                          onChange={(date) => {
+                            if (date instanceof Date) {
+                              field.onChange(date);
+                            }
+                          }}
+                          disabledDays={(date) => 
                             date < form.getValues("invoiceDate")
                           }
                         />

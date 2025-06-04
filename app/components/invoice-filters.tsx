@@ -29,6 +29,10 @@ export function InvoiceFilters({ onFilterChange }: InvoiceFiltersProps) {
   const [dueDaysOperator, setDueDaysOperator] = useState("")
   const [dueDaysValue, setDueDaysValue] = useState<number>(0)
 
+  const handleDateChange = (value: Date | DateRange | null) => {
+    setDateRange(value as DateRange | undefined)
+  }
+
   const handleFilterChange = () => {
     onFilterChange({
       retailerName,
@@ -79,11 +83,9 @@ export function InvoiceFilters({ onFilterChange }: InvoiceFiltersProps) {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
+                allowRange
+                value={dateRange}
+                onChange={handleDateChange}
                 numberOfMonths={2}
               />
             </PopoverContent>
