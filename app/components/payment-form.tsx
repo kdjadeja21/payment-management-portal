@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { format } from "date-fns"
+import { CalendarIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +18,13 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 import { Retailer } from "@/types"
 import { applyLumpSumPayment } from "@/app/actions/payments"
 import { formatCurrency } from "@/lib/utils"
@@ -30,7 +39,7 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState<number>(totalDue)
-  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date())
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +57,10 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
 
     const selectedDate = new Date(paymentDate)
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    
+    // Set both dates to midnight UTC for accurate comparison
+    selectedDate.setUTCHours(0, 0, 0, 0)
+    today.setUTCHours(0, 0, 0, 0)
 
     if (selectedDate > today) {
       toast.error("Payment date cannot be in the future")
@@ -58,7 +70,7 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
     setIsSubmitting(true)
     
     try {
-      const result = await applyLumpSumPayment(retailer.id, amount, paymentDate)
+      const result = await applyLumpSumPayment(retailer.id, amount, paymentDate.toISOString().split('T')[0])
       
       toast.success(`Payment of ${formatCurrency(amount)} applied successfully`)
       setOpen(false)
@@ -92,16 +104,35 @@ export function PaymentForm({ retailer, totalDue, onSuccess }: PaymentFormProps)
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-              <Label htmlFor="paymentDate">Payment Date</Label>
-              <Input
-                id="paymentDate"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-                required
-              />
+            <div className="grid gap-2">
+              <Label>Payment Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !paymentDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    value={paymentDate}
+                    onChange={(value) => {
+                      if (value instanceof Date) {
+                        setPaymentDate(value)
+                      }
+                    }}
+                    disableFutureDates
+                    allowRange={false}
+                    className="rounded-md border"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="amount">Payment Amount</Label>
