@@ -163,14 +163,16 @@ export default function DashboardLayout({
         <div className="flex items-center gap-4">
           <SearchDialog />
           <NotificationDropdown />
-          <UserButton
-            afterSignOutUrl="/sign-in"
-            appearance={{
-              elements: {
-                avatarBox: "w-10 h-10",
-              },
-            }}
-          />
+          <div className="flex items-center">
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  avatarBox: "w-10 h-10",
+                },
+              }}
+            />
+          </div>
         </div>
       </header>
       <div className="grid flex-1 md:grid-cols-[220px_1fr]">
